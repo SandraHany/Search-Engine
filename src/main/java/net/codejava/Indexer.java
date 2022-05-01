@@ -110,13 +110,13 @@ public class Indexer {
 	//	MongoClient mongoClient	=   MongoClients.create("mongodb+srv://Sandra:sandra@cluster0.real4.mongodb.net/Indexer?retryWrites=true&w=majority");
           
 		
-		 MongoCredential credential = MongoCredential.createCredential("Sandra", "Indexer", "sandra".toCharArray());
+		/* MongoCredential credential = MongoCredential.createCredential("Sandra", "Indexer", "sandra".toCharArray());
 		ConnectionString connectionString = new ConnectionString("mongodb://Sandra:sandra@cluster0-shard-00-00.real4.mongodb.net:27017,cluster0-shard-00-01.real4.mongodb.net:27017,cluster0-shard-00-02.real4.mongodb.net:27017/Indexer?ssl=true&replicaSet=atlas-bhl30t-shard-0&authSource=admin&retryWrites=true&w=majority, connectTimeoutMS: 10000000");
 		MongoClientSettings settings = MongoClientSettings.builder()
 		        .applyConnectionString(connectionString)
 		        .credential(credential)
-		        .build();
-		MongoClient mongoClient = MongoClients.create(settings);
+		        .build();*/
+		MongoClient mongoClient = MongoClients.create("mongodb://localhost:27017");
 		MongoDatabase db = mongoClient.getDatabase("Indexer");
  
 
@@ -124,7 +124,7 @@ public class Indexer {
 		//MongoClient mongoClient= MongoClients.create("mongodb+srv://Sandra:passw0rd@cluster0.real4.mongodb.net/myFirstDatabase?retryWrites=true&w=majority");
 		//MongoDatabase db =mongoClient.getDatabase("SearchEngine0");
 		MongoCollection <org.bson.Document> InvertedFile=db.getCollection("InvertedFile");
-		//db.getCollection("InvertedFile").deleteMany(new org.bson.Document());
+		db.getCollection("InvertedFile").deleteMany(new org.bson.Document());
 		//BasicDBObject document = new BasicDBObject();
 		//db.getCollection("InvertedFile").drop();
 		//db.createCollection("InvertedFile");
@@ -223,7 +223,7 @@ public class Indexer {
     			it_tokens_value=stemmer.stem(it_tokens_all.next().toLowerCase());
     			iterable = db.getCollection("InvertedFile").find(new org.bson.Document ("word",it_tokens_value));
     			//if(iterable.first==null) {
-				if(iterable==null) {
+    			if(iterable.first()==null) {
 					//URLs_DB.add(it_SeedURLs_value);
 					//document_url_tf= new org.bson.Document("URL",it_SeedURLs_value) .append("TF", 1);
 					document0 = new org.bson.Document("word",it_tokens_value).append("DF",1);
@@ -246,26 +246,36 @@ public class Indexer {
 				  
 				    
 				    FindIterable<org.bson.Document> ft;
-				    if((db.getCollection("InvertedFile").find(criteria)) != null) {
+				    cursor = InvertedFile.find(criteria).cursor();  
+				    if(cursor.hasNext()) {
+					    try{
+					        while(cursor.hasNext()){
+					        	
+					        	oldDoc = cursor.next();
 				   // try{
 				    	//cursor = db.getCollection("InvertedFile").find(criteria).cursor();  
 						//oldDoc =  db.getCollection("InvertedFile").find(criteria).first();
 				       // while(cursor.hasNext()){
 				    	//cursor = (db.getCollection("InvertedFile").find(criteria)).iterator();  
-				        	oldDoc = ( db.getCollection("InvertedFile").find(criteria)).cursor().next();
+				        	//oldDoc = ( db.getCollection("InvertedFile").find(criteria)).cursor().next();
 				    	    
 				            upsert = new UpdateOptions().upsert(true);
 				            idFilter = Filters.eq("_id", oldDoc.getObjectId("_id"));
 				            TF_Prev_Arr=new ArrayList<org.bson.Document>((ArrayList) (oldDoc.get("TF/URL")));
 				            //Set<String> tags= new HashSet<String>();	
-				            List<String> tags= new ArrayList<String>();
+				            
 				            for(int y=0;y<TF_Prev_Arr.size();y++) {
 				            	dummy=(String) ((org.bson.Document)(TF_Prev_Arr.get(y))).get("URL");
 		
 				            	if(dummy.equals(it_SeedURLs_value)) {
 				            		TF_Prev=(Integer) (((org.bson.Document)(TF_Prev_Arr.get(y))).get("TF"));	
+				            		List<String> tags= new ArrayList<String>();
 				            		tags=(List<String>) (((org.bson.Document)(TF_Prev_Arr.get(y))).get("Tags"));
-				            		if(!tags.contains(tag_choice)) {
+				            		if(tags==null) {
+				            			tags=new ArrayList<String>();
+				            			tags.add(tag_choice);
+				            		}
+				            		else if(!tags.contains(tag_choice) ) {
 				            		tags.add(tag_choice);
 				            		}
 				            		TF_Prev_Arr.remove(y);	
@@ -276,16 +286,16 @@ public class Indexer {
 						            updates=Updates.combine(Updates.set("TF/URL",TF_Prev_Arr));	
 						            db.getCollection("InvertedFile").updateOne(idFilter, updates, upsert);
 						            break;
-				            	}
+}
 				            	
 				            }
 				            
 				            	
-				           // }
+				            }
 				        
-				   // } finally {
-				     //   cursor.close();
-				    //}
+				    } finally {
+				        cursor.close();
+				    }
 				    }
 				    else {
 				    	criteria = new BasicDBObject();
@@ -313,11 +323,11 @@ public class Indexer {
 		   }
 		}
 		//result=InvertedFile.find();
-		/*System.out.println(stemmer.stem("frequently"));
+		System.out.println(stemmer.stem("frequently"));
 		result=InvertedFile.find(new org.bson.Document("word", "frequent"));
 		for(org.bson.Document document: result) {
 			System.out.println(document.toJson());
-		}*/
+		}
 			
 
 		
