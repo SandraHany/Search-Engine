@@ -2,24 +2,20 @@ package com.search_engine;
 
 import java.io.*;
 import java.util.*;
-import java.util.logging.Level;
 
 import org.jsoup.*;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.net.*;
-import java.text.Normalizer;
 
 import com.mongodb.*;
-import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
 import com.mongodb.client.model.Updates;
 import com.mongodb.client.result.DeleteResult;
 
 import org.bson.Document;
-import org.bson.conversions.Bson;
 
 import crawlercommons.filters.basic.BasicURLNormalizer;
 
@@ -41,6 +37,11 @@ public class Crawler implements Runnable {
      * A queue is used to perform a breadth first search
      */
     static Queue<String> links = new LinkedList<String>();
+
+    /*
+     * A list to store the links under crawling
+     */
+    static List<String> linksUnderCrawling = new ArrayList<String>();
 
     /*
      * A variable to state the number of links crawled
@@ -193,6 +194,7 @@ public class Crawler implements Runnable {
             }
             fillLinksToBeCrawled();
             fillCrawledLinks();
+            fillLinksUnderCrawling();
         }
 
         /*
@@ -234,7 +236,7 @@ public class Crawler implements Runnable {
             BasicURLNormalizer normalizer = new BasicURLNormalizer();
 
             if (url.isEmpty() || CrawledLinksMap.containsKey(normalizer.filter(url))
-                    || links.contains(normalizer.filter(url))) {
+                    || links.contains(normalizer.filter(url)) || linksUnderCrawling.contains(normalizer.filter(url))) {
                 return true;
             }
             return false;
@@ -257,7 +259,8 @@ public class Crawler implements Runnable {
         private void addtToLinksToBeCrawled(String url) {
             BasicURLNormalizer normalizer = new BasicURLNormalizer();
             String normalizedUrl = normalizer.filter(url);
-            if (!url.contains("void") && !isPresent(normalizedUrl) && url.contains("http") && (new RobotChecker(url)).CrawlingAllowed()) {
+            if (!url.contains("void") && !isPresent(normalizedUrl) && url.contains("http")
+                    && (new RobotChecker(url)).CrawlingAllowed()) {
                 links.add(normalizedUrl);
                 crawlerLinks.insertOne(new Document("url", normalizedUrl));
             }
@@ -305,20 +308,29 @@ public class Crawler implements Runnable {
                 CrawledLinksMap.put(normalizer.filter(document.getString("url")), 1);
             }
         }
+
+        private void fillLinksUnderCrawling() {
+            BasicURLNormalizer normalizer = new BasicURLNormalizer();
+            Iterator iterator = linkUnderCrawl.find().iterator();
+            while (iterator.hasNext()) {
+                Document document = (Document) iterator.next();
+                linksUnderCrawling.add(normalizer.filter(document.getString("url")));
+            }
+        }
     }
 
-        /*
-         * function Crawl is responsible for the following:
-         * 1. get the next url from the list of links to be crawled
-         * 2. crawl the url
-         * 3. add the extracted links to the list of links to be crawled
-         * 4. add the url to the list of crawled links
-         */
+    /*
+     * function Crawl is responsible for the following:
+     * 1. get the next url from the list of links to be crawled
+     * 2. crawl the url
+     * 3. add the extracted links to the list of links to be crawled
+     * 4. add the url to the list of crawled links
+     */
     private void crawl(SeedManager seedManager) {
         while (!links.isEmpty()) {
             String url;
             synchronized (seedManager) {
-                if (CrawledLinksMap.size()+links.size() > maxLinks)
+                if (CrawledLinksMap.size() + links.size() > maxLinks)
                     break;
                 url = seedManager.getNextLink();
             }
@@ -328,13 +340,13 @@ public class Crawler implements Runnable {
                 Elements links = doc.select("a[href]");
                 System.out.println(url);
                 for (Element link : links) {
-                    if ((new BasicURLNormalizer()).filter(url)
-                            .equals((new BasicURLNormalizer()).filter(link.attr("abs:href")))) {
-                        continue;
-                    }
                     System.out.printf("crawled-- %s\n", link.attr("abs:href"));
                     synchronized (seedManager) {
-                        seedManager.addtToLinksToBeCrawled(link.attr("abs:href"));
+                        if (url != null && !url.equals(link.attr("abs:href") + "/") && !url.equals(link.attr("abs:href"))
+                                && !(url + "#").equals(link.attr("abs:href")))
+                            seedManager.addtToLinksToBeCrawled(link.attr("abs:href"));
+                        else
+                            System.out.println("same link");
                     }
                 }
             } catch (IOException e) {
@@ -343,22 +355,28 @@ public class Crawler implements Runnable {
             synchronized (seedManager) {
                 seedManager.addToCrawledLinks(url);
             }
+
+            try {
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
+            }
         }
     }
 
-        @Override
-        public void run() {
-            crawl(seedManager);
-        }    
+    @Override
+    public void run() {
+        crawl(seedManager);
+    }
 
     public static void main(String[] args) throws URISyntaxException, IOException {
         int crawlerCount = 5;
-        Thread [] crawlers = new Thread[crawlerCount];
+        Thread[] crawlers = new Thread[crawlerCount];
         for (int i = 0; i < crawlerCount; i++) {
             crawlers[i] = new Thread(new Crawler());
             crawlers[i].start();
         }
-        //join threads
+        // join threads
         for (int i = 0; i < crawlerCount; i++) {
             try {
                 crawlers[i].join();
