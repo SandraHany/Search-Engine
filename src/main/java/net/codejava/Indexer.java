@@ -1,50 +1,115 @@
 package net.codejava;
-import  opennlp.tools.stemmer.PorterStemmer;
+
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Scanner;
-import java.util.Set;
-import org.bson.BasicBSONObject;
-import org.bson.conversions.Bson;
+import java.util.function.Consumer;
+
+import org.bson.Document;
 import org.jsoup.Connection;
 import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
 import org.jsoup.select.Elements;
+
 import com.mongodb.BasicDBObject;
-import com.mongodb.ConnectionString;
-import com.mongodb.MongoClientSettings;
-import com.mongodb.MongoCredential;
 import com.mongodb.client.FindIterable;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoClients;
 import com.mongodb.client.MongoCollection;
 import com.mongodb.client.MongoDatabase;
-import com.mongodb.client.MongoIterable;
 import com.mongodb.client.model.Filters;
+import com.mongodb.client.model.UpdateOneModel;
 import com.mongodb.client.model.UpdateOptions;
 import com.mongodb.client.model.Updates;
-import com.mongodb.client.result.UpdateResult;
+import com.mongodb.client.model.WriteModel;
 
-import com.mongodb.client.MongoCursor;
-import static com.mongodb.client.model.Filters.eq;
-public class Indexer {
-	public static void main(String[] args) {
-		PorterStemmer stemmer = new PorterStemmer();
-		/*for(String dbName : dbNames) {
-			System.out.println(dbName);
-		}*/
-		FileInputStream fis;
-		List<String>stopWordsList = new ArrayList<String>();
-		List<String>headings = new ArrayList<String>();
-		List<String>titles = new ArrayList<String>();
-		List<String>normal = new ArrayList<String>();
-		//Iterator<String> it_stop_words = stopWordsList.iterator();
+import crawlercommons.filters.basic.BasicURLNormalizer;
+import opennlp.tools.stemmer.PorterStemmer;
+
+
+public class IndexerFast {
+
+	public static  class MongoDBClass {
+		private MongoClient mongoClient;
+	    private MongoDatabase db; 
+	    public MongoDBClass() {
+			
+		
+	    	this. mongoClient = MongoClients.create("mongodb+srv://Sandra:fmCs6CAZx0phSrjs@cluster0.real4.mongodb.net/SearchEngine?retryWrites=true&w=majority");
+	    	this. db = mongoClient.getDatabase("SearchEngine");		
+			
+	    }
+	    public MongoCollection<Document> DBgetCollection(String CollectionName) {
+	    	return db.getCollection(CollectionName);
+	    }
+	}
+	//static HashMap<String, docContainer> indexerDocuments = new HashMap<String, Boolean>();
+	public static PorterStemmer stemmer =new PorterStemmer();
+	static MongoDBClass db_connection=new MongoDBClass();
+	//static HashMap<String, Boolean> CrawlerLinks = new HashMap<String, Boolean>();
+	static HashMap<String, org.jsoup.nodes.Document> URL_doc = new HashMap<String, org.jsoup.nodes.Document>();
+	static List<String>headings = new ArrayList<String>();
+	static List<String>titles = new ArrayList<String>();
+	static List<String>plainText = new ArrayList<String>();
+	static List<String>stopWordsList = new ArrayList<String>();
+	static List<String>dummyList = new ArrayList<String>();
+	static List<String> crawlerLinks= new ArrayList<String>();
+	static HashMap<String, org.bson.Document> indexerDocuments = new HashMap<String, org.bson.Document>();
+	static List<String>URL_Indexed_before_set = new ArrayList<String>();
+	static List<org.bson.Document>URL_Indexed_before_documents = new ArrayList<org.bson.Document>();
+	static List<String>URL_SET = new ArrayList<String>();
+	static int  num_documents;
+	
+
+	private static void getCrawlerLinks() {
+		/*FindIterable<Document> iterDoc=db_connection.DBgetCollection("CrawlerLinks").find();
+		@SuppressWarnings("deprecation")
+		int num_documents=(int) db_connection.DBgetCollection("CrawlerLinks").count();
+		Iterator it = iterDoc.iterator();
+		while(it.hasNext()) {
+			 Document document = (Document) it.next();
+			 String url=document.getString("url");
+             org.jsoup.nodes.Document doc=null;
+			 URL_doc.put(url, doc);
+		}
+		num_documents=URL_doc.size();
+		System.out.println(URL_doc.size());*/
+			 MultithreadingCrawlerLinks crawler_links_1= new MultithreadingCrawlerLinks(URL_doc,num_documents);
+			 MultithreadingCrawlerLinks crawler_links_2= new MultithreadingCrawlerLinks(URL_doc,num_documents);
+			 MultithreadingCrawlerLinks crawler_links_3= new MultithreadingCrawlerLinks(URL_doc,num_documents);
+			 MultithreadingCrawlerLinks crawler_links_4= new MultithreadingCrawlerLinks(URL_doc,num_documents);
+			 MultithreadingCrawlerLinks crawler_links_5= new MultithreadingCrawlerLinks(URL_doc,num_documents);
+				
+			 Thread t1=new Thread(crawler_links_1);
+			 t1.setName("1");
+			 Thread t2=new Thread(crawler_links_2);
+			 t2.setName("1");
+			 Thread t3=new Thread(crawler_links_3);
+			 t3.setName("3");
+			 Thread t4=new Thread(crawler_links_4);
+			 t4.setName("4");
+			 Thread t5=new Thread(crawler_links_5);
+			 t5.setName("5");
+				t1.start();
+				t2.start();
+				t3.start();
+				t4.start();
+				t5.start();
+		
+				URL_doc=MultithreadingCrawlerLinks.URL_doc;
+	}
+	
+	private static void stopWords() {
+		FileInputStream fis;;
 		try {
 			fis = new FileInputStream("StopWords.txt");
 			Scanner sc = new Scanner(fis);
@@ -55,278 +120,455 @@ public class Indexer {
 			// TODO Auto-generated catch block
 			e1.printStackTrace();
 		}
+	}
+	private static void URLTags_Preprocessed(org.jsoup.nodes.Document doc, String URL) {
+		if(doc !=null) {
+		dummyList=Arrays.asList(doc.select("title").text().toLowerCase().split(" "));
+		 for(String s:dummyList) {
+			 s=preprocess(s);
+			 if(s!=null ) {
+				 addToHashmap(s,URL,"title");
+			 }
+		 }
+		// dummy.clear();
+		 dummyList=Arrays.asList(doc.select("h1").text().toLowerCase().split(" "));
+		 for(String s:dummyList) {
+			 s=preprocess(s);
+			 if(s!=null ) {
+				 addToHashmap(s,URL,"Heading");
+			 }
+		 }
+		 //dummy.clear();
+		 dummyList=Arrays.asList(doc.select("h2").text().toLowerCase().split(" "));
+		 for(String s:dummyList) {
+			 s=preprocess(s);
+			 if(s!=null ) {
+				 addToHashmap(s,URL,"Heading");
+			 }
+		 }
+		 //dummy.clear();
+		 dummyList=Arrays.asList(doc.select("h3").text().toLowerCase().split(" "));
+		 for(String s:dummyList) {
+			 s=preprocess(s);
+			 if(s!=null ) {
+				 addToHashmap(s,URL,"Heading");
+			 }
+		 }
+		// dummy.clear();
+		 dummyList=Arrays.asList(doc.select("h4").text().toLowerCase().split(" "));
+		 for(String s:dummyList) {
+			 s=preprocess(s);
+			 if(s!=null ) {
+				 addToHashmap(s,URL,"Heading");
+			 }
+		 }
+		 //dummy.clear();
+		 dummyList=Arrays.asList(doc.select("h5").text().toLowerCase().split(" "));
+		 for(String s:dummyList) {
+			 s=preprocess(s);
+			 if(s!=null ) {
+				 addToHashmap(s,URL,"Heading");
+			 }
+		 }
+		 //dummy.clear();
+		 dummyList=Arrays.asList(doc.select("h6").text().toLowerCase().split(" "));
+		 for(String s:dummyList) {
+			 s=preprocess(s);
+			 if(s!=null ) {
+				 addToHashmap(s,URL,"Heading");
+			 }
+		 }
+		 //dummy.clear();
+		 dummyList=Arrays.asList(doc.select("pre").text().toLowerCase().split(" "));
+		 for(String s:dummyList) {
+			 s=preprocess(s);
+			 if(s!=null ) {
+				 addToHashmap(s,URL,"Plain Text");
+			 }
+		 }
+		 //dummy.clear();
+		 dummyList=Arrays.asList(doc.select("li").text().toLowerCase().split(" "));
+		 for(String s:dummyList) {
+			 s=preprocess(s);
+			 if(s!=null ) {
+				 addToHashmap(s,URL,"Plain Text");;
+			 }
+		 }
+		 //dummy.clear();
+		 dummyList=Arrays.asList(doc.select("p").text().toLowerCase().split(" "));
+		 for(String s:dummyList) {
+			 s=preprocess(s);
+			 if(s!=null ) {
+		  			
+			    addToHashmap(s,URL,"Plain Text");
+				 
+			 }
+		 }
+		 //dummy.clear();
+		System.out.println("Indexed----->"+ URL);
+		}
+	}
+	private static void addToHashmap(String word , String URL, String tag){
+		if(!indexerDocuments.containsKey(word)) {
+			//URLs_DB.add(it_SeedURLs_value);
+			//document_url_tf= new org.bson.Document("URL",it_SeedURLs_value) .append("TF", 1);
+			Document document0 = new org.bson.Document("word",word).append("DF",1);
+			ArrayList<Document> TFs_URLs = new ArrayList<org.bson.Document>();
+			List<String> tags= new ArrayList<String>();
+			tags.add(tag);
+			org.bson.Document d= new org.bson.Document("URL",URL) .append("TF", 1);
+			d.append("Tags", tags);
+			TFs_URLs.add(d);
+			document0.append("TF/URL", TFs_URLs);
+			indexerDocuments.put(word, document0);
+			//db.getCollection("InvertedFile0").insertOne([{word:it_tokens_value,DF:1}]);
+		}
+		else {
+       
+			org.bson.Document oldDoc = indexerDocuments.get(word);
+			Boolean found=false;
+			
+				
+			ArrayList<org.bson.Document> TF_Prev_Arr=new ArrayList<org.bson.Document>((ArrayList) (oldDoc.get("TF/URL")));
+            //Set<String> tags= new HashSet<String>();	
+            String dummy=null;
+            for(int y=0;y<TF_Prev_Arr.size();y++) {
+            	dummy=(String) ((org.bson.Document)(TF_Prev_Arr.get(y))).get("URL");
 
+            	if(dummy.equals(URL)) {
+            		Integer TF_Prev=(Integer) (((org.bson.Document)(TF_Prev_Arr.get(y))).get("TF"));	
+            		List<String> tags= new ArrayList<String>();
+            		tags=(List<String>) (((org.bson.Document)(TF_Prev_Arr.get(y))).get("Tags"));
+            		if(tags==null) {
+            			tags=new ArrayList<String>();
+            			tags.add(tag);
+            		}
+            		else if(!tags.contains(tag) ) {
+            		tags.add(tag);
+            		}
+            		TF_Prev_Arr.remove(y);	
+            		org.bson.Document  d= new org.bson.Document("URL",URL);
+            		d.append("TF", TF_Prev+1);
+            		d.append("Tags",tags);
+		            TF_Prev_Arr.add(d);
+		            oldDoc.replace("TF/URL",TF_Prev_Arr);	
+		            indexerDocuments.put(word, oldDoc);
+		            found=true;
+		            break;
+
+            	
+            }
 		
-		Set<String> Seed_URLs= new HashSet<String>();	
-		List<String> tokens_headings=new ArrayList<String>();
-		List<String> tokens_titles=new ArrayList<String>();
-		List<String> tokens_normal=new ArrayList<String>();
-		List<String> URLs_DB=new ArrayList<String>();
-		try {
-			//linux-> // 
-			//windows-> \\
-			 fis = new FileInputStream("SeedSet.txt");
-			Scanner sc = new Scanner(fis);
-			while(sc.hasNextLine()) {
-				Seed_URLs.add(sc.nextLine());
+		        
+		   
+            }
+			
+		         if(found==false) {   
+		    	org.bson.Document document = indexerDocuments.get(word);	    
+		    	 TF_Prev_Arr=(ArrayList) (document.get("TF/URL"));
+	            int DF_Prev=(Integer) document.get("DF");
+	            List<String> tags= new ArrayList<String>();	
+	            tags.add(tag);
+	            org.bson.Document doc= new org.bson.Document("URL",URL);
+	            doc.append("TF", 1);
+	            doc.append("Tags", tags);
+	            TF_Prev_Arr.add(doc);
+	            document.replace("DF", DF_Prev+1);
+	            document.replace("TF/URL", TF_Prev_Arr);
+	            indexerDocuments.put(word, document);
+		         }
+	            
+		    }
+		
+	}
+	private static String preprocess(String str) {
+	  
+		  str=str.replaceAll("[^a-zA-Z0-9]", " ");
+		  str=str.replaceAll("\\s", "");
+		  if (! str.isBlank()  && !stopWordsList.contains(str ) ){
+			
+			return stemmer.stem(str);
+		  }
+		  else {
+			  return null; 
+		  }
+	  }
+	
+	 private static void getPeviouslyIndexed() {
+		 
+		 FindIterable<Document> iterDoc=db_connection.DBgetCollection("IndexedURLS").find();
+			@SuppressWarnings("deprecation")
+			
+			Iterator it = iterDoc.iterator();
+			while(it.hasNext()) {
+				 Document document = (Document) it.next();
+				 String url=document.getString("url");
+	     
+	             URL_Indexed_before_set.add(url);
+	            // URL_SET.add(url);
+	         
 			}
-			sc.close();
-		} catch (FileNotFoundException e) {
+	 }	
+	private static  org.jsoup.nodes.Document getDoc(String url) {
+		 Connection connection = Jsoup.connect(url);   
+		 connection.userAgent("Mozilla");
+		 connection.timeout(10 * 1000);
+		 try {
+			org.jsoup.nodes.Document doc = connection.get();
+		  return doc;
+			
+		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
-		Iterator<String> it_Seed_URLs = Seed_URLs.iterator(); 
-		//Iterator<String> it_tokens = tokens.iterator(); 
-		Iterator<String> it_tokens_titles ;
-		Iterator<String> it_tokens_headings ;
-		Iterator<String> it_tokens_normal ;
-		Iterator<String> it_tokens_all= null ;
-		org.jsoup.nodes.Document doc = null;
-		String it_SeedURLs_value = null;
-		String it_tokens_value = null;
-		String text = null;
-		String arr[] = null;
-
-		// database for inverted file
-
-		//String uri = "mongodb+srv://Sandra:passw0rd@cluster0.real4.mongodb.net/Indexer?retryWrites=true&w=majority";
-	    //String uri = "mongodb://Sandra:passw0rd@localhost";
-		//MongoClient mongoClient = MongoClients.create(uri);
-//ConnectionString connectionString = new ConnectionString("mongodb+srv://Sandra:orm3SQJsTmVEdIdc@cluster0.real4.mongodb.net/Indexer?retryWrites=true&w=majority");
-//MongoClientSettings settings = MongoClientSettings.builder()
-  //      .applyConnectionString(connectionString)
-    //    .build();
-
-
-		//MongoClient mongoClient = MongoClients.create();
-
-//ConnectionString connectionString = new ConnectionString("mongodb+srv://Sandra:stVaUoUQ1M5YQTQJ@cluster0.real4.mongodb.net/Indexer?retryWrites=true&w=majority");
-//MongoClientSettings settings = MongoClientSettings.builder()
-  //      .applyConnectionString(connectionString)
-    //    .build();
-//MongoClient mongoClient = MongoClients.create(settings);
-		//MongoClient		mongoClient = MongoClients.create("mongodb://Sandra:sandra@cluster0-shard-00-00.real4.mongodb.net:27017,cluster0-shard-00-01.real4.mongodb.net:27017,cluster0-shard-00-02.real4.mongodb.net:27017/Indexer?ssl=true&replicaSet=atlas-bhl30t-shard-0&authSource=admin&retryWrites=true&w=majority");
-		//MongoClient mongoClient	=   MongoClients.create("mongodb://localhost:27017");
-	//	MongoClient mongoClient	=   MongoClients.create("mongodb+srv://Sandra:sandra@cluster0.real4.mongodb.net/Indexer?retryWrites=true&w=majority");
-          
+		 return null;
 		
-		/* MongoCredential credential = MongoCredential.createCredential("Sandra", "Indexer", "sandra".toCharArray());
-		ConnectionString connectionString = new ConnectionString("mongodb://Sandra:sandra@cluster0-shard-00-00.real4.mongodb.net:27017,cluster0-shard-00-01.real4.mongodb.net:27017,cluster0-shard-00-02.real4.mongodb.net:27017/Indexer?ssl=true&replicaSet=atlas-bhl30t-shard-0&authSource=admin&retryWrites=true&w=majority, connectTimeoutMS: 10000000");
-		MongoClientSettings settings = MongoClientSettings.builder()
-		        .applyConnectionString(connectionString)
-		        .credential(credential)
-		        .build();*/
-		MongoClient mongoClient = MongoClients.create("mongodb://Sandra:fmCs6CAZx0phSrjs@cluster0-shard-00-00.real4.mongodb.net:27017,cluster0-shard-00-01.real4.mongodb.net:27017,cluster0-shard-00-02.real4.mongodb.net:27017/SearchEngine?ssl=true&replicaSet=atlas-bhl30t-shard-0&authSource=admin&retryWrites=true&w=majority");
-		//MongoClient mongoClient = MongoClients.create("mongodb+srv://Sandra:fmCs6CAZx0phSrjs@cluster0.real4.mongodb.net/SearchEngine?retryWrites=true&w=majority");
-		MongoDatabase db = mongoClient.getDatabase("SearchEngine");
- 
-
-		//spring.data.mongodb.uri="mongodb+srv://Sandra:passw0rd@cluster0.real4.mongodb.net/myFirstDatabase?retryWrites=true&w=majority";
-		//MongoClient mongoClient= MongoClients.create("mongodb+srv://Sandra:passw0rd@cluster0.real4.mongodb.net/myFirstDatabase?retryWrites=true&w=majority");
-		//MongoDatabase db =mongoClient.getDatabase("SearchEngine0");
-		MongoCollection <org.bson.Document> InvertedFile=db.getCollection("Indexer");
-		db.getCollection("Indexer").deleteMany(new org.bson.Document());
-		//BasicDBObject document = new BasicDBObject();
-		//db.getCollection("InvertedFile").drop();
-		//db.createCollection("InvertedFile");
 		
-		org.bson.Document document0;
-		org.bson.Document document_url_tf;
-		org.bson.Document document_url_df;
-		FindIterable<org.bson.Document> result;
-		FindIterable<org.bson.Document> iterable;
-		Bson updates;
-		UpdateOptions options;
-		ArrayList TF_Prev_Arr;
-		org.bson.Document TF_Prev_Doc = null;
-		Integer TF_Prev;
-		int DF_Prev;
-		it_Seed_URLs=Seed_URLs.iterator();
-		UpdateResult update_result;
-		List<org.bson.Document> TFs_URLs;
-		BasicDBObject searchQuery=null;
-		MongoCursor<org.bson.Document> cursor=null;
-		org.bson.Document oldDoc;
-		UpdateOptions upsert=null; 
-		Bson idFilter=null;
-		BasicDBObject criteria;
-		String dummy;
-		String tag_choice=null;
-		while (it_Seed_URLs.hasNext()) {   
-			it_SeedURLs_value=it_Seed_URLs.next();
-			tokens_titles.clear();
-			tokens_headings.clear();
-			tokens_normal.clear();
-			try {
-					//doc = Jsoup.connect(it_SeedURLs_value).timeout(1000000).get();
-				 Connection connection = Jsoup.connect(it_SeedURLs_value);
-				    
-				 connection.userAgent("Mozilla");
-				    
-				    //set timeout to 10 seconds
-				    connection.timeout(10 * 1000);
-				    
-				    //get the HTML document
-				     doc = connection.get();
-				    
-				    //parse text from HTML
-				    
-					 headings.addAll(Arrays.asList(doc.select("h1").text().toLowerCase().split(" ")));
-			            headings.addAll(Arrays.asList(doc.select("h2").text().toLowerCase().split(" ")));
-			            headings.addAll(Arrays.asList(doc.select("h3").text().toLowerCase().split(" ")));
-			            headings.addAll(Arrays.asList(doc.select("h4").text().toLowerCase().split(" ")));
-			            headings.addAll(Arrays.asList(doc.select("h5").text().toLowerCase().split(" ")));
-			            headings.addAll(Arrays.asList(doc.select("h6").text().toLowerCase().split(" ")));
-			            titles.addAll(Arrays.asList(doc.select("title").text().toLowerCase().split(" ")));
-			            normal.addAll(Arrays.asList(doc.select("pre").text().toLowerCase().split(" ")));
-			            normal.addAll(Arrays.asList(doc.select("p").text().toLowerCase().split(" ")));
-			            normal.addAll(Arrays.asList(doc.select("li").text().toLowerCase().split(" ")));
-			} catch (IOException e) {
+    }
+	public static void main(String[] args) {
+		
+		//System.out.println(db_connection.DBgetCollection("CrawlerLinks").find());
+		getPeviouslyIndexed();
+		//getCrawlerLinks();
+		FindIterable<Document> iterDoc=db_connection.DBgetCollection("CrawlerLinks").find();
+		@SuppressWarnings("deprecation")
+		int num_documents=(int) db_connection.DBgetCollection("CrawlerLinks").count();
+		Iterator it = iterDoc.iterator();
+		while(it.hasNext()) {
+			 Document document = (Document) it.next();
+			 String url=document.getString("url");
+			 if(!URL_Indexed_before_set.contains(url)) {
+             org.jsoup.nodes.Document doc=null;
+			 URL_doc.put(url, doc);
+			 }
+            // URL_SET.add(url);
+         
+		}
+		num_documents=URL_doc.size();
+		System.out.println(URL_doc.size());
+			 MultithreadingCrawlerLinks crawler_links_1= new MultithreadingCrawlerLinks(URL_doc,num_documents);
+			 MultithreadingCrawlerLinks crawler_links_2= new MultithreadingCrawlerLinks(URL_doc,num_documents);
+			 MultithreadingCrawlerLinks crawler_links_3= new MultithreadingCrawlerLinks(URL_doc,num_documents);
+			 MultithreadingCrawlerLinks crawler_links_4= new MultithreadingCrawlerLinks(URL_doc,num_documents);
+			 MultithreadingCrawlerLinks crawler_links_5= new MultithreadingCrawlerLinks(URL_doc,num_documents);
+				
+			 Thread t1=new Thread(crawler_links_1);
+			 t1.setName("1");
+			 Thread t2=new Thread(crawler_links_2);
+			 t2.setName("1");
+			 Thread t3=new Thread(crawler_links_3);
+			 t3.setName("3");
+			 Thread t4=new Thread(crawler_links_4);
+			 t4.setName("4");
+			 Thread t5=new Thread(crawler_links_5);
+			 t5.setName("5");
+				t1.start();
+				t2.start();
+				t3.start();
+				t4.start();
+				t5.start();
+				try {
+					t1.join();
+				} catch (InterruptedException e1) {
+					// TODO Auto-generated catch block
+					e1.printStackTrace();
+				}
+				try {
+					t2.join();
+				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
-			} 
-            
-           
-            //System.out.println(text);
-           // arr=text.split(" ");
-            for(int i=0; i<headings.size(); i++) {
-            	if(!stopWordsList.contains(headings.get(i).toLowerCase())) {
-            	tokens_headings.add(headings.get(i).toLowerCase());
-            	}
-	        }
-            for(int i=0; i<titles.size(); i++) {
-            	if(!stopWordsList.contains(titles.get(i).toLowerCase())) {
-            	tokens_titles.add(titles.get(i).toLowerCase());
-            	}
-	        }
-            for(int i=0; i<normal.size(); i++) {
-            	if(!stopWordsList.contains(normal.get(i))) {
-            	tokens_normal.add(normal.get(i).toLowerCase());
-            	}
-	        }
-            it_tokens_headings=tokens_headings.iterator();
-            it_tokens_titles=tokens_titles.iterator();
-            it_tokens_normal=tokens_normal.iterator();
-    		while (it_tokens_headings.hasNext() || it_tokens_titles.hasNext() ||it_tokens_normal.hasNext()) {   
-    			//it_tokens_value=it_tokens.next();
-    			if(it_tokens_headings.hasNext()) {
-    				it_tokens_all=it_tokens_headings;
-    				tag_choice="Heading";
-    			}
-    			else if(it_tokens_titles.hasNext()){
-    				it_tokens_all=it_tokens_titles;
-    				tag_choice="Title";
-    			}
-    			else if(it_tokens_normal.hasNext()){
-    				it_tokens_all=it_tokens_normal;
-    				tag_choice="Normal";
-    			}
-    			it_tokens_value=stemmer.stem(it_tokens_all.next().toLowerCase());
-    			iterable = db.getCollection("Indexer").find(new org.bson.Document ("word",it_tokens_value));
-    			//if(iterable.first==null) {
-    			if(iterable.first()==null) {
-					//URLs_DB.add(it_SeedURLs_value);
-					//document_url_tf= new org.bson.Document("URL",it_SeedURLs_value) .append("TF", 1);
-					document0 = new org.bson.Document("word",it_tokens_value).append("DF",1);
-					TFs_URLs=new ArrayList<org.bson.Document>();
-					List<String> tags= new ArrayList<String>();
-					tags.add(tag_choice);
-					org.bson.Document d= new org.bson.Document("URL",it_SeedURLs_value) .append("TF", 1);
-					d.append("Tags", tags);
-					//TFs_URLs.add(new org.bson.Document("URL",it_SeedURLs_value) .append("TF", 1));
-					TFs_URLs.add(d);
-					InvertedFile.insertOne(document0.append("TF/URL", TFs_URLs));
-					//db.getCollection("InvertedFile0").insertOne([{word:it_tokens_value,DF:1}]);
 				}
-				else {
-					
-					criteria = new BasicDBObject();
-					criteria.append("word",it_tokens_value);
-					criteria.append("TF/URL.URL",it_SeedURLs_value);
-					
-				  
-				    
-				    FindIterable<org.bson.Document> ft;
-				    cursor = InvertedFile.find(criteria).cursor();  
-				    if(cursor.hasNext()) {
-					    try{
-					        while(cursor.hasNext()){
-					        	
-					        	oldDoc = cursor.next();
-				   // try{
-				    	//cursor = db.getCollection("InvertedFile").find(criteria).cursor();  
-						//oldDoc =  db.getCollection("InvertedFile").find(criteria).first();
-				       // while(cursor.hasNext()){
-				    	//cursor = (db.getCollection("InvertedFile").find(criteria)).iterator();  
-				        	//oldDoc = ( db.getCollection("InvertedFile").find(criteria)).cursor().next();
-				    	    
-				            upsert = new UpdateOptions().upsert(true);
-				            idFilter = Filters.eq("_id", oldDoc.getObjectId("_id"));
-				            TF_Prev_Arr=new ArrayList<org.bson.Document>((ArrayList) (oldDoc.get("TF/URL")));
-				            //Set<String> tags= new HashSet<String>();	
-				            
-				            for(int y=0;y<TF_Prev_Arr.size();y++) {
-				            	dummy=(String) ((org.bson.Document)(TF_Prev_Arr.get(y))).get("URL");
-		
-				            	if(dummy.equals(it_SeedURLs_value)) {
-				            		TF_Prev=(Integer) (((org.bson.Document)(TF_Prev_Arr.get(y))).get("TF"));	
-				            		List<String> tags= new ArrayList<String>();
-				            		tags=(List<String>) (((org.bson.Document)(TF_Prev_Arr.get(y))).get("Tags"));
-				            		if(tags==null) {
-				            			tags=new ArrayList<String>();
-				            			tags.add(tag_choice);
-				            		}
-				            		else if(!tags.contains(tag_choice) ) {
-				            		tags.add(tag_choice);
-				            		}
-				            		TF_Prev_Arr.remove(y);	
-				            		org.bson.Document  d= new org.bson.Document("URL",it_SeedURLs_value);
-				            		d.append("TF", TF_Prev+1);
-				            		d.append("Tags",tags);
-						            TF_Prev_Arr.add(d);
-						            updates=Updates.combine(Updates.set("TF/URL",TF_Prev_Arr));	
-						            db.getCollection("Indexer").updateOne(idFilter, updates, upsert);
-						            break;
-}
-				            	
-				            }
-				            
-				            	
-				            }
-				        
-				    } finally {
-				        cursor.close();
-				    }
-				    }
-				    else {
-				    	criteria = new BasicDBObject();
-						criteria.append("word",it_tokens_value);
-						cursor = InvertedFile.find(criteria).cursor();  
-						oldDoc = cursor.next();
-			            //System.out.println(oldDoc.toJson());
-			            upsert = new UpdateOptions().upsert(true);
-			            idFilter = Filters.eq("_id", oldDoc.getObjectId("_id"));
-			            TF_Prev_Arr=(ArrayList) (oldDoc.get("TF/URL"));
-			            DF_Prev=(int) oldDoc.get("DF");
-			            List<String> tags= new ArrayList<String>();	
-			            tags.add(tag_choice);
-			            org.bson.Document d= new org.bson.Document("URL",it_SeedURLs_value);
-			            d.append("TF", 1);
-			            d.append("Tags", tags);
-			            TF_Prev_Arr.add(d);
-			            updates=Updates.combine(Updates.set("TF/URL",TF_Prev_Arr),Updates.set("DF",DF_Prev+1));	
-			            db.getCollection("InvertedFile").updateOne(idFilter, updates, upsert); 
-				    }
-				    
+				try {
+					t3.join();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
 				}
+				try {
+					t4.join();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				try {
+					t5.join();
+				} catch (InterruptedException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+        stopWords();
+       
+        
+        //shuld be added to getCrawlerLinks();
 
-			
-		   }
-		}
-		//result=InvertedFile.find();
-
-			
-
+        
+        //System.out.println(IndexedLinks);
+		/*URL_doc.entrySet().forEach(entry->{
+			URLTags_Preprocessed(entry.getValue(),entry.getKey());
+			Index();
+			IndexedLinks.put(entry.getKey(), true);
+		});*/
+        
+        System.out.println("got crawler links");
+        URL_doc=MultithreadingCrawlerLinks.URL_doc;
+        for (String url : URL_doc.keySet()) {
+        	URLTags_Preprocessed(URL_doc.get(url),url);
+        	org.bson.Document d= new org.bson.Document("URL",url);
+        	URL_Indexed_before_documents.add(d);
+        	//System.out.println(url + "--------> indexed");
+        }
+        db_connection.DBgetCollection("IndexedURLS").insertMany(URL_Indexed_before_documents);
 		
+		//db_connection.DBgetCollection("Indexer2").deleteMany(new org.bson.Document());
+        	//for(String word: indexerDocuments.keySet()) {
+        	List<org.bson.Document> list = new ArrayList<org.bson.Document>(indexerDocuments.values());
+        	long start = System.currentTimeMillis();
+        	db_connection.DBgetCollection("Indexer").insertMany(list);
+        	//}
+        	
+        	
+        	
+        	System.out.println("Indexed Successfully");
+        	long end = System.currentTimeMillis();
+        	long elapsedTime = end - start;
+        	System.out.println("Insert Time"+ elapsedTime);
+		//db_connection.DBgetCollection("Indexer2").insertMany((List<? extends org.bson.Document>) Arrays.asList(indexerDocuments.values()));
+
 	}
+}
+
+class MultithreadingCrawlerLinks implements Runnable {
+	public static HashMap<String, org.jsoup.nodes.Document> URL_doc ;
+	int numDocs;
+	public MultithreadingCrawlerLinks(HashMap<String, org.jsoup.nodes.Document> url_doc, int num_documents) {
+		URL_doc=url_doc;
+		numDocs=num_documents;
+	}
+	
+    public void run()
+    {
+    	if (Thread.currentThread().getName().equals("1")) {
+			do_work1(); 
+		}
+
+		else if (Thread.currentThread().getName().equals("2")) {
+			do_work2();
+		}
+		else if (Thread.currentThread().getName().equals("3")) {
+			do_work3();
+		}
+		else if (Thread.currentThread().getName().equals("4")) {
+			do_work4();
+		}
+		else if (Thread.currentThread().getName().equals("5")) {
+			do_work5();
+		}
+    }
+    void do_work1 () {
+		synchronized (this) {
+			
+			 for (Map.Entry<String,org.jsoup.nodes.Document> entry : new ArrayList<Map.Entry<String,org.jsoup.nodes.Document>>(URL_doc.entrySet()).subList(0, numDocs/5)) {
+			        String url = entry.getKey();
+			        org.jsoup.nodes.Document doc;
+					try {
+						doc = Jsoup.connect(url).get();
+						URL_doc.put(url, doc);
+						System.out.println(url+ "Thread 1  downloaded");
+					} catch (IOException e) {
+						URL_doc.remove(url);
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+			        
+			    }
+		
+		}
+		
+    }
+    void do_work2 () {
+		
+			synchronized (this) {
+				 for (Map.Entry<String,org.jsoup.nodes.Document> entry : new ArrayList<Map.Entry<String,org.jsoup.nodes.Document>>(URL_doc.entrySet()).subList(numDocs/5, 2*numDocs/5)) {
+				        String url = entry.getKey();
+				        org.jsoup.nodes.Document doc;
+						try {
+							doc = Jsoup.connect(url).get();
+							URL_doc.put(url, doc);
+							System.out.println(url+ "Thread 2  downloaded");
+						} catch (IOException e) {
+							URL_doc.remove(url);
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+				        
+				    }
+			
+			}
+			
+    }
+
+void do_work3 () {
+		
+			synchronized (this) {
+				 for (Map.Entry<String,org.jsoup.nodes.Document> entry : new ArrayList<Map.Entry<String,org.jsoup.nodes.Document>>(URL_doc.entrySet()).subList(2*numDocs/5, 3*numDocs/5)) {
+				        String url = entry.getKey();
+				        org.jsoup.nodes.Document doc;
+						try {
+							doc = Jsoup.connect(url).get();
+							URL_doc.put(url, doc);
+							System.out.println(url + "Thread 3  downloaded");
+						} catch (IOException e) {
+							URL_doc.remove(url);
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+				        
+				    }
+			
+			}
+			
+ }
+void do_work4 () {
+	
+		synchronized (this) {
+			 for (Map.Entry<String,org.jsoup.nodes.Document> entry : new ArrayList<Map.Entry<String,org.jsoup.nodes.Document>>(URL_doc.entrySet()).subList(3*numDocs/5, 4*numDocs/5)) {
+			        String url = entry.getKey();
+			        org.jsoup.nodes.Document doc;
+					try {
+						doc = Jsoup.connect(url).get();
+						URL_doc.put(url, doc);
+						System.out.println(url+ "Thread 4  downloaded");
+					} catch (IOException e) {
+						URL_doc.remove(url);
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+			        
+			    }
+		
+		}
+		
+}
+void do_work5 () {
+	
+		synchronized (this) {
+			 for (Map.Entry<String,org.jsoup.nodes.Document> entry : new ArrayList<Map.Entry<String,org.jsoup.nodes.Document>>(URL_doc.entrySet()).subList(4*numDocs/5,numDocs)) {
+			        String url = entry.getKey();
+			        org.jsoup.nodes.Document doc;
+					try {
+						doc = Jsoup.connect(url).get();
+						URL_doc.put(url, doc);
+						System.out.println(url+ "Thread 5  downloaded");
+					} catch (IOException e) {
+						URL_doc.remove(url);
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+			        
+			    }
+		
+		}
+		
+}
 }
