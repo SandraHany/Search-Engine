@@ -32,3 +32,65 @@
 .seperator-solid-class{
     border-top: 1px solid #ccc;
 }
+
+.websites-container-class{
+    padding-left: 10%;
+}
+
+.website-division-class{
+    display: flex;
+    flex-direction: column;
+    width: 45%;
+    margin-bottom: 3%;
+    line-break: anywhere;
+}
+
+.search-result-text-class{
+    font-size: large;
+    text-indent: 3%;
+    color: #70757A;
+}
+
+footer{
+    display: flex;
+    flex-direction: column;
+    background-color: #F2F2F2;
+    color: #70757A;
+    margin: auto;
+    padding-bottom: 5%;
+    height: 100px;
+}
+
+.pagination-class{
+    align-self: center;
+    margin: auto;
+}
+
+.pagination-button-class{
+    border: none;
+    font-size: large;
+}
+
+.pagination-button-class:hover{
+    color: blue;
+    text-decoration: underline;
+}
+
+
+
+/* used to make footer srick to the bottom */
+html, body {
+	height: 100%;
+}
+.wrapper {
+	min-height: 100%;
+	height: auto !important; /* This line and the next line are not necessary unless you need IE6 support */
+	height: 100%;
+	margin: 0 auto -155px; /* the bottom margin is the negative value of the footer's height */
+}
+.footer, .push {
+	height: 155px; /* .push must be the same height as .footer */
+}
+/* end of footer (stick to bottom)*/
+
+
