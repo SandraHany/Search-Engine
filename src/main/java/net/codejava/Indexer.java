@@ -36,7 +36,7 @@ import crawlercommons.filters.basic.BasicURLNormalizer;
 import opennlp.tools.stemmer.PorterStemmer;
 
 
-public class IndexerFast {
+public class Indexer {
 
 	public static  class MongoDBClass {
 		private MongoClient mongoClient;
