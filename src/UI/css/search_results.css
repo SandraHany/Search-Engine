@@ -56,7 +56,24 @@ footer{
     flex-direction: column;
     background-color: #F2F2F2;
     color: #70757A;
+    margin: auto;
+    padding-bottom: 5%;
     height: 100px;
+}
+
+.pagination-class{
+    align-self: center;
+    margin: auto;
+}
+
+.pagination-button-class{
+    border: none;
+    font-size: large;
+}
+
+.pagination-button-class:hover{
+    color: blue;
+    text-decoration: underline;
 }
 
 
@@ -75,4 +92,5 @@ html, body {
 	height: 155px; /* .push must be the same height as .footer */
 }
 /* end of footer (stick to bottom)*/
+
 
