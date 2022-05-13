@@ -32,3 +32,17 @@
 .seperator-solid-class{
     border-top: 1px solid #ccc;
 }
+
+.websites-container-class{
+    width: 100%;
+    margin-left: 10%;
+    padding-right: 50%;
+}
+
+.website-division-class{
+    display: flex;
+    flex-direction: column;
+    width: 45%;
+    margin-bottom: 5%;
+    line-break: anywhere;
+}
