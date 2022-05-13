@@ -43,6 +43,38 @@
     display: flex;
     flex-direction: column;
     width: 45%;
-    margin-bottom: 5%;
+    margin-bottom: 2%;
     line-break: anywhere;
 }
+
+.search-result-text-class{
+    font-size: large;
+    text-indent: 3%;
+    color: #70757A;
+}
+
+footer{
+    display: flex;
+    flex-direction: column;
+    background-color: #F2F2F2;
+    color: #70757A;
+    height: 100px;
+}
+
+
+
+/* used to make footer srick to the bottom */
+html, body {
+	height: 100%;
+}
+.wrapper {
+	min-height: 100%;
+	height: auto !important; /* This line and the next line are not necessary unless you need IE6 support */
+	height: 100%;
+	margin: 0 auto -155px; /* the bottom margin is the negative value of the footer's height */
+}
+.footer, .push {
+	height: 155px; /* .push must be the same height as .footer */
+}
+/* end of footer (stick to bottom)*/
+
