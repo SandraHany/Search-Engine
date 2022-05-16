@@ -20,7 +20,6 @@ let queryInput = document.getElementById("search-query-id");
 let searchQuery;
 
 searchByQuery(queryInput,searchQuery);
-module.exports = searchByQuery;
 
 
 
