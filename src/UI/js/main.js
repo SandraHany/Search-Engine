@@ -1,4 +1,4 @@
-
+const PORT = 3000;
 //function that takes query input and redirects to search results page
 //Uses local storage to store/update the search query
 function searchByQuery(queryInput,searchQuery){
@@ -10,8 +10,20 @@ function searchByQuery(queryInput,searchQuery){
             event.preventDefault();
             console.log("search query is " + searchQuery);
 
-            localStorage.setItem("SEARCHQUERY",searchQuery);
-            window.open("search_results.html", "_self");
+            var myRequest = new XMLHttpRequest();
+            myRequest.onreadystatechange = function(){
+                console.log(myRequest.status + " readyState");
+                if(myRequest.readyState == 4 && myRequest.status == 200){
+                    console.log(myRequest.responseText);
+                    console.log("it worked!!");
+                }
+            };
+            myRequest.open("GET", "http://localhost:3000/sites/" + searchQuery, true);
+            myRequest.send();
+
+
+            // localStorage.setItem("SEARCHQUERY",searchQuery);
+            // window.open("search_results.html", "_self");
         }
     });
 }

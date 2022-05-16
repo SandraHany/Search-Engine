@@ -2,7 +2,7 @@ const mongoose = require('mongoose');
 const schema = mongoose.Schema;
 
 const siteSchema = new schema({
-    url: String
+    word: String
 });
 
 const Site = mongoose.model('arwa', siteSchema);

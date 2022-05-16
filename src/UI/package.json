@@ -1,21 +1,21 @@
 {
-  "name": "requests",
+  "name": "ui",
   "version": "1.0.0",
-  "main": "connection.js",
+  "description": "",
+  "main": "index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "server": "nodemon server.js",
-    "start": "node server.js"
+    "server": "nodemon server.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^4.18.1",
     "mongoose": "^6.3.3"
   },
   "devDependencies": {
     "nodemon": "^2.0.16"
-  },
-  "description": ""
+  }
 }
