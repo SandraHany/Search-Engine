@@ -2,7 +2,7 @@ const connectDB = require('./connection.js');
 const Site = require('./schema.js');
 const express = require('express');
 const natural = require('natural');
-const stemmer = natural.LancasterStemmer;
+const stemmer = natural.PorterStemmer;
 const app = express();
 app.use(express.json());
 
@@ -32,20 +32,32 @@ app.get('/', (req, res) => {
 
 var wordList;
 
-app.get('/sites/:word', (req, res) => {
+app.get('/sites/:word', async (req, res) => {
     var query = req.params.word.toLowerCase();
     const queryArray = query.split(" ");
     wordList = [];
     loop1:
         for (let i = 0; i < queryArray.length; i++) {
-            Site.find({
-                word : stemmer.stem(queryArray[i])
+            if(queryArray[i] == ""){
+                continue loop1;
+            }
+            let currentWord = queryArray[i];
+            if(!skipStemming(currentWord)){
+                currentWord = stemmer.stem(queryArray[i]);
+            }
+            await Site.find({
+                word : currentWord
             }).then((result) =>{
                 if(result[0] != null){
                     wordList.push(result[0].word);              
                 }
                 if(i == queryArray.length - 1){
-                    res.send(result);
+                    if(wordList.length > 0){
+                        res.send(true);
+                    }
+                    else{
+                        res.send(false);
+                    }
                     console.log(...wordList);
                 }
 
@@ -57,14 +69,24 @@ app.get('/sites/:word', (req, res) => {
 
 
 
-app.get('/app', (req, res) => {
-    res.send(JSON.stringify([1,2,3,4,5,6,7,8,9,10,12,13]));
-    console.log(typeof(JSON.stringify([1,2,3,4,5,6,7,8,9,10,12,13])));
-});
+function skipStemming(word){
+    var skip = false;
+    skip = numberString(word);
+    return skip;
+}
 
+function numberString(string){
+    var number = Number(string);
+    if(number){
+        return true;
+    }
+    return false;
+}
 
-
-
+function removeSpecialCharacters(string){
+    var specialCharacters = /[ ]/|/[^a-zA-Z0-9]/g;
+    return string.replace(specialCharacters, "");
+}
 
 
 

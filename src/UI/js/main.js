@@ -8,6 +8,7 @@ function searchByQuery(queryInput,searchQuery){
             // Get the value of the input field
             searchQuery = queryInput.value;
             event.preventDefault();
+            searchQuery = removeSpecialCharacters(searchQuery);
             console.log("search query is " + searchQuery);
 
             var myRequest = new XMLHttpRequest();
@@ -34,6 +35,11 @@ let searchQuery;
 searchByQuery(queryInput,searchQuery);
 
 
+
+function removeSpecialCharacters(string){
+    var specialCharacters = /[^a-zA-Z0-9\s]/g;
+    return string.replace(specialCharacters, "");
+}
 
 
 
