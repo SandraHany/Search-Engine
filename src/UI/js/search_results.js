@@ -1,5 +1,6 @@
 //import {searchByQuery} from "./main.js";
 //const searchByQuery = require('./main.js');
+var afterLoad = require('after-load');
 
 var linksList = ["https://www.reddit.com/r/books/comments/4lugqb/books_that_changed_your_life_as_an_adult/"
                 ,"https://www.reddit.com"
@@ -52,7 +53,22 @@ let mainWebsiteDivision = document.getElementsByClassName("websites-container-cl
 let paginationDivision = document.getElementsByClassName("pagination-class");
 
 
+
+
+function httpGetHTML(theUrl)
+{
+    afterLoad('https://google.com', function(html){
+       console.log(html);
+       return html;
+    });   
+}
+
+
+
 function createWebsite(item){
+
+    var htmlResult = httpGetHTML(item);
+    console.log(htmlResult);
     let websiteDivision = document.createElement("div");
     let textNode = document.createTextNode(item);
     let textNode1 = document.createTextNode("3aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
@@ -65,6 +81,7 @@ function createWebsite(item){
     mainWebsiteDivision[0].appendChild(websiteDivision);
 }
 
+
 function displayWebsites(linksList, wrapper, maxWebsitesPerPage, currentPage) {
     wrapper.innerHTML= "";
     currentPage--;
@@ -75,7 +92,7 @@ function displayWebsites(linksList, wrapper, maxWebsitesPerPage, currentPage) {
         createWebsite(listItems[i]);
     }
 }
-var flag = true;
+
 
 function pagenation(linksList, wrapper, maxWebsitesPerPage){
     wrapper.innerHTML= "";
@@ -93,8 +110,6 @@ function pagenation(linksList, wrapper, maxWebsitesPerPage){
     
         });
         wrapper.appendChild(button);
-
-
     }
 }
 
@@ -102,7 +117,6 @@ function pagenation(linksList, wrapper, maxWebsitesPerPage){
 
 displayWebsites(linksList, mainWebsiteDivision[0], maxWebsitesPerPage, currentPage);
 pagenation(linksList, paginationDivision[0], maxWebsitesPerPage);
-console.log("heellloo");
 
 
 

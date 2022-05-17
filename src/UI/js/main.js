@@ -23,8 +23,8 @@ function searchByQuery(queryInput,searchQuery){
             myRequest.send();
 
 
-            // localStorage.setItem("SEARCHQUERY",searchQuery);
-            // window.open("search_results.html", "_self");
+            localStorage.setItem("SEARCHQUERY",searchQuery);
+            window.open("search_results.html", "_self");
         }
     });
 }
