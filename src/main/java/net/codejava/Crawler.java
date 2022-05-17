@@ -170,30 +170,24 @@ public class Crawler implements Runnable {
      */
 
     public static class SeedManager {
-        private MongoClient mongoClient1;
-        private MongoClient mongoClient2;
-        private MongoDatabase db1;
-        private MongoDatabase db2;
-        private MongoCollection crawlerLinks1;
-        private MongoCollection crawlerLinks2;
+        private MongoClient mongoClient;
+        private MongoDatabase db;
+        private MongoCollection crawlerLinks;
         private MongoCollection crawlerState;
         private MongoCollection crawledLinks;
         private MongoCollection linkUnderCrawl;
         public SeedManager() {
-            this.mongoClient1 = new MongoClient(new MongoClientURI(
-            		"mongodb://Sandra:fmCs6CAZx0phSrjs@cluster0-shard-00-00.l6yha.mongodb.net:27017,cluster0-shard-00-01.l6yha.mongodb.net:27017,cluster0-shard-00-02.l6yha.mongodb.net:27017/SearchEngine?ssl=true&replicaSet=atlas-3bz7rt-shard-0&authSource=admin&retryWrites=true&w=majority"));
-            this.db1 = mongoClient1.getDatabase("SearchEngine");
-            this.crawlerLinks1 = db1.getCollection("CrawlerLinks"); // A collection of links to be crawled
-            this.crawledLinks = db1.getCollection("CrawledLinks"); // A collection of links that have been crawled
-            this.crawlerState = db1.getCollection("CrawlerState"); // A collection to store the current state of the
+            this.mongoClient = new MongoClient(new MongoClientURI(
+            		"mongodb+srv://Sandra:fmCs6CAZx0phSrjs@cluster0.l6yha.mongodb.net/SearchEngine?retryWrites=true&w=majority"));
+            this.db = mongoClient.getDatabase("SearchEngine");
+            this.crawlerLinks = db.getCollection("CrawlerLinks"); // A collection of links to be crawled
+            this.crawledLinks = db.getCollection("CrawledLinks"); // A collection of links that have been crawled
+            this.crawlerState = db.getCollection("CrawlerState"); // A collection to store the current state of the
                                                                   // crawler
-            this.linkUnderCrawl = db1.getCollection("LinkUnderCrawl"); // A collection to store the links that are
+            this.linkUnderCrawl = db.getCollection("LinkUnderCrawl"); // A collection to store the links that are
                                                                       // currently being crawled
 
-            this.mongoClient2 = new MongoClient(new MongoClientURI(
-            		"mongodb://Sandra:fmCs6CAZx0phSrjs@cluster0-shard-00-00.real4.mongodb.net:27017,cluster0-shard-00-01.real4.mongodb.net:27017,cluster0-shard-00-02.real4.mongodb.net:27017/SearchEngine?ssl=true&replicaSet=atlas-bhl30t-shard-0&authSource=admin&retryWrites=true&w=majority"));
-            this.db2 = mongoClient2.getDatabase("SearchEngine");
-            this.crawlerLinks2 = db2.getCollection("CrawlerLinks"); // Another collection of links to be crawled due to space quota.
+           
             
             level = getCrawlerState();
             if (level == 0) {
@@ -232,12 +226,8 @@ public class Crawler implements Runnable {
             url=normalizer.filter("https://www.arduino.cc");
             org.jsoup.nodes.Document doc_jsoup = Jsoup.connect(url).get();
             org.bson.Document doc_bson = new org.bson.Document("url",url).append("document",doc_jsoup.html());
-            if(crawlerLinks1.countDocuments() <5000) {
-            crawlerLinks1.insertOne(doc_bson);
-            }
-            else {
-            	crawlerLinks2.insertOne(doc_bson);
-            }
+            crawlerLinks.insertOne(doc_bson);
+            
             }catch (IOException e) {
             	System.out.println("jsoup can't download this url--->"+url);
             	
@@ -246,12 +236,8 @@ public class Crawler implements Runnable {
              url=normalizer.filter("https://www.javatpoint.com");
             org.jsoup.nodes.Document doc_jsoup = Jsoup.connect(url).get();
             org.bson.Document doc_bson = new org.bson.Document("url",url).append("document",doc_jsoup.html());
-            if(crawlerLinks1.countDocuments() <5000) {
-            crawlerLinks1.insertOne(doc_bson);
-            }
-            else {
-            	crawlerLinks2.insertOne(doc_bson);
-            }
+            crawlerLinks.insertOne(doc_bson);
+   
             }catch (IOException e) {
             	System.out.println("jsoup can't download this url--->"+url);
            
@@ -259,13 +245,9 @@ public class Crawler implements Runnable {
             try {
              url=normalizer.filter("https://circuitdigest.com/microcontroller-projects/arduino-spi-communication-tutorial");
             org.jsoup.nodes.Document doc_jsoup = Jsoup.connect(url).get();
-            org.bson.Document doc_bson = new org.bson.Document("url",url).append("document",doc_jsoup.html());
-            if(crawlerLinks1.countDocuments() <5000) {
-            crawlerLinks1.insertOne(doc_bson);
-            }
-            else {
-            	crawlerLinks2.insertOne(doc_bson);
-            }
+            org.bson.Document doc_bson = new org.bson.Document("url",url).append("document",doc_jsoup.html());   
+            crawlerLinks.insertOne(doc_bson);
+            
             }catch (IOException e) {
             	System.out.println("jsoup can't download this url--->"+url);
             }
@@ -273,12 +255,7 @@ public class Crawler implements Runnable {
              url=normalizer.filter("https://stackoverflow.com");
             org.jsoup.nodes.Document doc_jsoup = Jsoup.connect(url).get();
             org.bson.Document doc_bson = new org.bson.Document("url",url).append("document",doc_jsoup.html());
-            if(crawlerLinks1.countDocuments() <5000) {
-            crawlerLinks1.insertOne(doc_bson);
-            }
-            else {
-            	crawlerLinks2.insertOne(doc_bson);
-            }
+            crawlerLinks.insertOne(doc_bson);
             }catch (IOException e) {
             	System.out.println("jsoup can't download this url--->"+url);
             } 
@@ -286,12 +263,7 @@ public class Crawler implements Runnable {
              url=normalizer.filter("https://www.zagrosrobotics.com/shop/custom.aspx?recid=69");
             org.jsoup.nodes.Document doc_jsoup = Jsoup.connect(url).get();
             org.bson.Document doc_bson = new org.bson.Document("url",url).append("document",doc_jsoup.html());
-            if(crawlerLinks1.countDocuments() <5000) {
-            crawlerLinks1.insertOne(doc_bson);
-            }
-            else {
-            	crawlerLinks2.insertOne(doc_bson);
-            }
+            crawlerLinks.insertOne(doc_bson);
             }catch (IOException e) {
             	System.out.println("jsoup can't download this url--->"+url);
             } 
@@ -334,13 +306,10 @@ public class Crawler implements Runnable {
                   
                 	 org.jsoup.nodes.Document  doc_jsoup = Jsoup.connect(normalizedUrl).get();
                     org.bson.Document doc_bson = new org.bson.Document("url",normalizedUrl).append("document",doc_jsoup.html());
-                    if(crawlerLinks1.countDocuments() <5000) {
-                        crawlerLinks1.insertOne(doc_bson);
-                      }
-                      else {
-                        	crawlerLinks2.insertOne(doc_bson);
-                       }
-                }catch (IOException e) {
+                        crawlerLinks.insertOne(doc_bson);
+                      
+                      
+               }catch (IOException e) {
                 	System.out.println("jsoup can't download this url--->"+normalizedUrl);
                 } 
                
@@ -364,10 +333,9 @@ public class Crawler implements Runnable {
             if (links.contains(normalizedUrl)) {
                 links.remove(normalizedUrl);
                 System.out.println("removing from links to be crawled: " + normalizedUrl);
-                DeleteResult res = crawlerLinks1.deleteOne(new Document("url", normalizedUrl));
+                DeleteResult res = crawlerLinks.deleteOne(new Document("url", normalizedUrl));
                 System.out.println(res.getDeletedCount());
-                res = crawlerLinks2.deleteOne(new Document("url", normalizedUrl));
-                System.out.println(res.getDeletedCount());
+               
             }
         }
 
@@ -376,16 +344,12 @@ public class Crawler implements Runnable {
          */
         private void fillLinksToBeCrawled() {
             BasicURLNormalizer normalizer = new BasicURLNormalizer();
-            Iterator iterator = crawlerLinks1.find().iterator();
+            Iterator iterator = crawlerLinks.find().iterator();
             while (iterator.hasNext()) {
                 Document document = (Document) iterator.next();
                 links.add(normalizer.filter(document.getString("url")));
             }
-            iterator = crawlerLinks2.find().iterator();
-            while (iterator.hasNext()) {
-                Document document = (Document) iterator.next();
-                links.add(normalizer.filter(document.getString("url")));
-            }
+            
         }
 
         private void fillCrawledLinks() {
