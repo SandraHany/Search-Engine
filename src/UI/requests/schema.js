@@ -12,7 +12,7 @@ const siteSchema = new schema({
 
 
 
-const Site = mongoose.model('arwaindexer', siteSchema);
+const Site = mongoose.model('indexer', siteSchema);
 
 module.exports = Site;
 

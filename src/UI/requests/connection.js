@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
 
-const connectionString = "mongodb+srv://Sandra:fmCs6CAZx0phSrjs@cluster0.l6yha.mongodb.net/SearchEngine?retryWrites=true&w=majority";
+const connectionString = "mongodb+srv://Sandra:fmCs6CAZx0phSrjs@cluster0.real4.mongodb.net/SearchEngine?retryWrites=true&w=majority";
 
 
 const connectDB = async() => {

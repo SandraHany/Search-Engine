@@ -9,14 +9,14 @@ function searchByQuery(queryInput,searchQuery){
             searchQuery = queryInput.value;
             event.preventDefault();
             searchQuery = removeSpecialCharacters(searchQuery);
-            console.log("search query is " + searchQuery);
+            console.log("search query is: " + searchQuery);
 
             var myRequest = new XMLHttpRequest();
             myRequest.onreadystatechange = function(){
                 console.log(myRequest.status + " readyState");
                 if(myRequest.readyState == 4 && myRequest.status == 200){
                     console.log(myRequest.responseText);
-                    console.log("it worked!!");
+                    //console.log("it worked!!");
                 }
             };
             myRequest.open("GET", "http://localhost:3000/sites/" + searchQuery, true);
