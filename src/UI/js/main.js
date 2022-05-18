@@ -32,8 +32,6 @@ function searchByQuery(queryInput,searchQuery){
             };
             myRequest.open("GET", "http://localhost:3000/sites/" + searchQuery, true);
             myRequest.send();
-
-
         }
     });
 }

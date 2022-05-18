@@ -3,6 +3,7 @@ const Site = require('./schema.js');
 const express = require('express');
 const natural = require('natural');
 const https = require('https');
+const {parser}  = require('html-metadata-parser');
 const stemmer = natural.PorterStemmer;
 const app = express();
 app.use(express.json());
@@ -12,8 +13,7 @@ const cors = require('cors');
 
 var host, port;
 
-var linksList = ["https://www.google.com"
-                ,"https://www.reddit.com/r/books/comments/4lugqb/books_that_changed_your_life_as_an_adult/"
+var linksList = ["https://www.reddit.com/r/books/comments/4lugqb/books_that_changed_your_life_as_an_adult/"
                 ,"https://www.reddit.com"
                 ,"https://www.computerhope.com/jargon/u/url.htm"
                 ,"https://stackoverflow.com/questions/21293456/scroll-horizontally-starting-from-right-to-left-with-css-overflowscroll"
@@ -75,7 +75,7 @@ app.get('/sites/:word', async (req, res) => {
                 }
                 if(i == queryArray.length - 1){
                     if(wordList.length > 0){
-                        populateJsonResponse(linksList);
+                        //populateJsonResponse(linksList);
                         res.send(jsonResponse);
                     }
                     else{
@@ -91,34 +91,28 @@ app.get('/sites/:word', async (req, res) => {
 });
 
 
-function getHtmlFromURL(url) {
-    return new Promise(function(resolve, reject) {
-        https.get(url, function(res) {
-            var html = '';
-            res.on('data', function(data) {
-                html = document.getElementById("h1");
-            });
-            res.on('end', function() {
-                resolve(html);
-            });
-        }).on('error', function(e) {
-            reject(e);
-        });
-    });
-}
-
-function getHeaderFromURL(url){
-
-    
+async function getHtmlFromURL(url) {
+    var result = await parser(url);
+    return (result.meta.title);
+    // descriptionList.push(result.meta.description);
+    // console.log(result.meta.title);
+    // console.log(result.meta.description);
+    // console.log(typeof(result.meta.title));
+    // console.log(typeof(result.meta.description));
 }
 
 
-async function populateJsonResponse(linksList) {
-    for (let i = 0; i<linksList.length; i++ ){
-        var html = await getHtmlFromURL(linksList[i]);
-        console.log(html);
-
+function populateJsonResponse(linksList) {
+    var title;
+    for(let i = 0; i < 1; i++){
+        (async () => {
+            const title = await getHtmlFromURL(linksList[i])
+            console.log(title)
+          })();
     }
+    console.log("hi");
+    console.log(title);
+    console.log("hi");
 }
 
 
