@@ -2,6 +2,7 @@ const connectDB = require('./connection.js');
 const Site = require('./schema.js');
 const express = require('express');
 const natural = require('natural');
+const https = require('https');
 const stemmer = natural.PorterStemmer;
 const app = express();
 app.use(express.json());
@@ -11,6 +12,27 @@ const cors = require('cors');
 
 var host, port;
 
+var linksList = ["https://www.google.com"
+                ,"https://www.reddit.com/r/books/comments/4lugqb/books_that_changed_your_life_as_an_adult/"
+                ,"https://www.reddit.com"
+                ,"https://www.computerhope.com/jargon/u/url.htm"
+                ,"https://stackoverflow.com/questions/21293456/scroll-horizontally-starting-from-right-to-left-with-css-overflowscroll"
+                ,"https://www.reddit.com"
+                ,"https://developer.mozilla.org/en-US/docs/Learn/HTML/Introduction_to_HTML/Creating_hyperlinks"
+                ,"https://www.reddit.com/r/books/comments/4lugqb/books_that_changed_your_life_as_an_adult/"
+                ,"https://www.reddit.com"
+                ,"https://css-tricks.com/scroll-fix-content/"
+                ,"https://www.computerhope.com/jargon/u/url.htm"
+                ,"https://www.producthunt.com/posts/copy-all-urls"];
+
+var headerList = [];
+var descriptionList = [];
+
+var jsonResponse = {
+    "links": linksList,
+    "header": headerList,
+    "description": descriptionList
+};                
 
 connectDB();
 
@@ -53,7 +75,8 @@ app.get('/sites/:word', async (req, res) => {
                 }
                 if(i == queryArray.length - 1){
                     if(wordList.length > 0){
-                        res.send(true);
+                        populateJsonResponse(linksList);
+                        res.send(jsonResponse);
                     }
                     else{
                         res.send(false);
@@ -67,6 +90,36 @@ app.get('/sites/:word', async (req, res) => {
         }
 });
 
+
+function getHtmlFromURL(url) {
+    return new Promise(function(resolve, reject) {
+        https.get(url, function(res) {
+            var html = '';
+            res.on('data', function(data) {
+                html = document.getElementById("h1");
+            });
+            res.on('end', function() {
+                resolve(html);
+            });
+        }).on('error', function(e) {
+            reject(e);
+        });
+    });
+}
+
+function getHeaderFromURL(url){
+
+    
+}
+
+
+async function populateJsonResponse(linksList) {
+    for (let i = 0; i<linksList.length; i++ ){
+        var html = await getHtmlFromURL(linksList[i]);
+        console.log(html);
+
+    }
+}
 
 
 function skipStemming(word){
@@ -83,15 +136,15 @@ function numberString(string){
     return false;
 }
 
-function removeSpecialCharacters(string){
-    var specialCharacters = /[ ]/|/[^a-zA-Z0-9]/g;
-    return string.replace(specialCharacters, "");
-}
 
 
 
 
 
+// function removeSpecialCharacters(string){
+//     var specialCharacters = /[ ]/|/[^a-zA-Z0-9]/g;
+//     return string.replace(specialCharacters, "");
+// }
 
 // TO BE USED INSTEAD OF NATURAL
 // function processWord(word){

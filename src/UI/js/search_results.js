@@ -1,18 +1,8 @@
 //import {searchByQuery} from "./main.js";
 //const searchByQuery = require('./main.js');
-var afterLoad = require('after-load');
+//var afterLoad = require('after-load');
 
-var linksList = ["https://www.reddit.com/r/books/comments/4lugqb/books_that_changed_your_life_as_an_adult/"
-                ,"https://www.reddit.com"
-                ,"https://www.computerhope.com/jargon/u/url.htm"
-                ,"https://stackoverflow.com/questions/21293456/scroll-horizontally-starting-from-right-to-left-with-css-overflowscroll"
-                ,"https://www.reddit.com"
-                ,"https://developer.mozilla.org/en-US/docs/Learn/HTML/Introduction_to_HTML/Creating_hyperlinks"
-                ,"https://www.reddit.com/r/books/comments/4lugqb/books_that_changed_your_life_as_an_adult/"
-                ,"https://www.reddit.com"
-                ,"https://css-tricks.com/scroll-fix-content/"
-                ,"https://www.computerhope.com/jargon/u/url.htm"
-                ,"https://www.producthunt.com/posts/copy-all-urls"];
+var linksList = JSON.parse(sessionStorage.getItem("jSONRESPONSE")).links;
 
 let queryInput = document.getElementById("search-query-id");
 let searchQuery;
@@ -67,8 +57,8 @@ function httpGetHTML(theUrl)
 
 function createWebsite(item){
 
-    var htmlResult = httpGetHTML(item);
-    console.log(htmlResult);
+    //var htmlResult = httpGetHTML(item);
+    //console.log(htmlResult);
     let websiteDivision = document.createElement("div");
     let textNode = document.createTextNode(item);
     let textNode1 = document.createTextNode("3aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");

@@ -15,16 +15,25 @@ function searchByQuery(queryInput,searchQuery){
             myRequest.onreadystatechange = function(){
                 console.log(myRequest.status + " readyState");
                 if(myRequest.readyState == 4 && myRequest.status == 200){
-                    console.log(myRequest.responseText);
-                    //console.log("it worked!!");
+                    var response = myRequest.responseText;
+                    if(response == "false"){
+                        console.log("no results were found");
+                    }
+                    else{
+                        var jsonResponse = JSON.parse(response);
+                        console.log(response);
+                        console.log(jsonResponse);
+                        console.log(jsonResponse.links);
+                        sessionStorage.setItem("jSONRESPONSE", JSON.stringify(jsonResponse));
+                        localStorage.setItem("SEARCHQUERY",searchQuery);
+                        window.open("search_results.html", "_self");
+                    }
                 }
             };
             myRequest.open("GET", "http://localhost:3000/sites/" + searchQuery, true);
             myRequest.send();
 
 
-            localStorage.setItem("SEARCHQUERY",searchQuery);
-            window.open("search_results.html", "_self");
         }
     });
 }
