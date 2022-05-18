@@ -21,12 +21,35 @@ queryInput.addEventListener("keypress", function(event) {
         // Get the value of the input field
         searchQuery = queryInput.value;
         event.preventDefault();
-        console.log("search query is " + searchQuery);
+        searchQuery = removeSpecialCharacters(searchQuery);
+        console.log("search query is: " + searchQuery);
 
-        localStorage.setItem("SEARCHQUERY",searchQuery);
-        window.open("search_results.html", "_self");
+        var myRequest = new XMLHttpRequest();
+        myRequest.onreadystatechange = function(){
+            console.log(myRequest.status + " readyState");
+            if(myRequest.readyState == 4 && myRequest.status == 200){
+                var response = myRequest.responseText;
+                if(response == "false"){
+                    console.log("no results were found");
+                    mainWebsiteDivision[0].innerHTML = "No results were found";
+                }
+                else{
+                    var jsonResponse = JSON.parse(response);
+                    sessionStorage.setItem("jSONRESPONSE", JSON.stringify(jsonResponse));
+                    localStorage.setItem("SEARCHQUERY",searchQuery);
+                    window.open("search_results.html", "_self");
+                }
+            }
+        };
+        myRequest.open("GET", "http://localhost:3000/sites/" + searchQuery, true);
+        myRequest.send();
     }
 });
+
+function removeSpecialCharacters(string){
+    var specialCharacters = /[^a-zA-Z0-9\s]/g;
+    return string.replace(specialCharacters, "");
+}
 
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -71,7 +94,7 @@ function getTitle(url){
 
 
 
-async function fetchText(url) {
+async function fetchTitle(url) {
     let response = await fetch("http://textance.herokuapp.com/title/" + url).then(response => response.text());
     console.log(response);
     return response;
@@ -80,7 +103,7 @@ async function fetchText(url) {
 
 
 async function createWebsite(item){
-    var title =  await fetchText(item);
+    var title =  await fetchTitle(item);
     console.log(title);
     //var htmlResult = httpGetHTML(item);
     //console.log(htmlResult);

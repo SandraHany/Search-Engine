@@ -55,6 +55,7 @@ const server = app.listen(PORT, () => {
 var wordList;
 
 app.get('/sites/:word', async (req, res) => {
+    var jsonResponse = {};
     var query = req.params.word.toLowerCase();
     const queryArray = query.split(" ");
     wordList = [];
@@ -75,17 +76,16 @@ app.get('/sites/:word', async (req, res) => {
                 }
                 if(i == queryArray.length - 1){
                     if(wordList.length > 0){
-                        console.log(...wordList);
+                        //console.log(...wordList);
+                        tempLinksList = [];
                         await callRanker(wordList, tempLinksList);
                         linksList = ranked_URLs;
-                        var jsonResponse = {
+                        console.log(ranked_URLs);
+                        jsonResponse = {
                             "links": linksList,
-                            "header": titleList,
                             "description": descriptionList
                         }; 
-                        //console.log(...linksList);
-                        //console.log(linksList);
-                        console.log(jsonResponse);
+                        //console.log(jsonResponse);
                         res.send(jsonResponse);
                     }
                     else{
@@ -108,37 +108,6 @@ async function callRanker(words, found_documents) {
       } catch (e) {
         console.error(e);
       }
-}
-
-
-
-async function getHtmlFromURL(url, title ,description) {
-    var result = await parser(url);
-    title.push({title: result.meta.title});
-    description.push({description: result.meta.description});
-    return (result.meta.title);
-    // descriptionList.push(result.meta.description);
-    // console.log(result.meta.title);
-    // console.log(result.meta.description);
-    // console.log(typeof(result.meta.title));
-    // console.log(typeof(result.meta.description));
-}
-
-async function getHtmlData(){
-    var result = await parser('https://www.youtube.com/watch?v=eSzNNYk7nVU');
-    console.log(result.meta.title);
-    console.log(result.meta.description);
-}
-
-
-function populateJsonResponse(linksList) {
-    var title;
-
-    getHtmlData();
-
-    console.log("hi");
-    console.log(...titleList);
-    console.log("hi");
 }
 
 
@@ -244,7 +213,6 @@ async function ranker(words, found_documents) {
         ? -1
         : 1
     );
-  
     ranked_URLs = found_documents.map((doc) => doc.URL);
   }
 
@@ -329,4 +297,37 @@ async function PhraseSearching() {
 //         newWord += word;
 //     }
 //     return newWord;
+// }
+
+
+
+/////////////////////////////////////////////////////
+
+// async function getHtmlFromURL(url, title ,description) {
+//     var result = await parser(url);
+//     title.push({title: result.meta.title});
+//     description.push({description: result.meta.description});
+//     return (result.meta.title);
+//     // descriptionList.push(result.meta.description);
+//     // console.log(result.meta.title);
+//     // console.log(result.meta.description);
+//     // console.log(typeof(result.meta.title));
+//     // console.log(typeof(result.meta.description));
+// }
+
+// async function getHtmlData(){
+//     var result = await parser('https://www.youtube.com/watch?v=eSzNNYk7nVU');
+//     console.log(result.meta.title);
+//     console.log(result.meta.description);
+// }
+
+
+// function populateJsonResponse(linksList) {
+//     var title;
+
+//     getHtmlData();
+
+//     console.log("hi");
+//     console.log(...titleList);
+//     console.log("hi");
 // }
