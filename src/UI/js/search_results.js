@@ -2,11 +2,11 @@ var linksList = JSON.parse(sessionStorage.getItem("jSONRESPONSE")).links;
 // var linksList = ["https://stackoverflow.com/questions/7901760/how-can-i-get-the-title-of-a-webpage-given-the-url-an-external-url-using-jquer",
 //                  "https://windows.php.net/download#php-8.1"];
 
-console.log(...linksList);
-console.log("hello");
 
 let queryInput = document.getElementById("search-query-id");
 let searchQuery;
+const first = "first";
+const last = "last";
 
 window.onload = function() {
     searchQuery = localStorage.getItem("SEARCHQUERY");
@@ -78,12 +78,17 @@ function httpGetHTML(theUrl)
 
 function getTitle(url){
     var xhttp = new XMLHttpRequest();
+    var result;
     xhttp.onreadystatechange = async function(){
        if (this.readyState == 4 && this.status == 200) {
 
-            var result =  this.responseText;
+            result =  this.responseText;
             console.log(result);
-            //console.log("yay");
+            return result;
+        }
+        else
+        {
+            result = "";
             return result;
         }
       };
@@ -110,17 +115,21 @@ async function createWebsite(item){
     let websiteDivision = document.createElement("div");
     websiteDivision.className = "website-division-class";
 
+    let websiteSubDivision = document.createElement("div");
     let textLink = document.createTextNode(item);
     let textTitleLink = document.createTextNode(title);
+    websiteSubDivision.className = "title-link-class";
 
     let link = document.createElement("a");
 
     link.href = item;
+    textTitleLink.href = item;
 
     link.appendChild(textLink);
 
+    websiteSubDivision.appendChild(textTitleLink);
     websiteDivision.appendChild(link);
-    websiteDivision.appendChild(textTitleLink);
+    websiteDivision.appendChild(websiteSubDivision);
     mainWebsiteDivision[0].appendChild(websiteDivision);
 }
 
@@ -137,23 +146,64 @@ function displayWebsites(linksList, wrapper, maxWebsitesPerPage, currentPage) {
 }
 
 
+
 function pagenation(linksList, wrapper, maxWebsitesPerPage){
     wrapper.innerHTML= "";
     let pageCount = Math.ceil(linksList.length/maxWebsitesPerPage);
-    for (let i = 1; i < pageCount+1; i++) {
-        let button = document.createElement("button");
+
+    let startPage = currentPage - Math.floor(maxWebsitesPerPage/2);
+    let endPage = currentPage + Math.floor(maxWebsitesPerPage/2);
+
+    if(startPage < 1){
+        startPage = 1;
+        endPage = maxWebsitesPerPage;
+    }
+    if(endPage > pageCount){
+        endPage = pageCount;
+        startPage = pageCount - maxWebsitesPerPage + 1;
+        if(startPage < 1){
+            startPage = 1;
+        }
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+        if(i == startPage){
+            createButton(first,linksList ,wrapper, maxWebsitesPerPage);
+        }
+        createButton(i,linksList ,wrapper, maxWebsitesPerPage);
+        if(i == endPage){
+            createButton(last,linksList ,wrapper, maxWebsitesPerPage);
+        }
+    }
+}
+
+function createButton(i , linksList, wrapper, maxWebsitesPerPage){
+    let button = document.createElement("button");
+    button.innerText = i;
+    if(i != first && i != last){
         button.className = "pagination-button-class";
-        button.innerText = i;
         if(currentPage==i){
             button.classList.add("active");
         }
-        button.addEventListener("click", function(){
-            currentPage = i;
-            displayWebsites(linksList, mainWebsiteDivision[0], maxWebsitesPerPage, currentPage);
-    
-        });
-        wrapper.appendChild(button);
     }
+
+    button.addEventListener("click", function(){
+        if (i == first){
+            button.className = "first-last-button-class";
+            currentPage = 1;
+        }
+        else if(i == last){
+            button.className = "first-last-button-class";
+            currentPage = Math.ceil(linksList.length/maxWebsitesPerPage);
+        }
+        else{
+            currentPage = i;
+        }
+        displayWebsites(linksList, mainWebsiteDivision[0], maxWebsitesPerPage, currentPage);
+        pagenation(linksList, paginationDivision[0], maxWebsitesPerPage);
+
+    });
+    wrapper.appendChild(button);
 }
 
 

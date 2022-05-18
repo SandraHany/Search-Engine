@@ -76,7 +76,15 @@ footer{
     text-decoration: underline;
 }
 
+.title-link-class{
+    font-size: larger;
+}
 
+
+button.pagination-button-class.active{
+    background-color: #ccc;
+    color: #70757A;
+}
 
 /* used to make footer srick to the bottom */
 html, body {
