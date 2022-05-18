@@ -32,6 +32,8 @@ queryInput.addEventListener("keypress", function(event) {
                 if(response == "false"){
                     console.log("no results were found");
                     mainWebsiteDivision[0].innerHTML = "No results were found";
+                    var skipLine = document.createElement("br");
+                    mainWebsiteDivision[0].appendChild(skipLine);
                 }
                 else{
                     var jsonResponse = JSON.parse(response);
@@ -101,7 +103,7 @@ function getTitle(url){
 
 async function fetchTitle(url) {
     let response = await fetch("http://textance.herokuapp.com/title/" + url).then(response => response.text());
-    console.log(response);
+    //console.log(response);
     return response;
 }
 
@@ -109,7 +111,7 @@ async function fetchTitle(url) {
 
 async function createWebsite(item){
     var title =  await fetchTitle(item);
-    console.log(title);
+    //console.log(title);
     //var htmlResult = httpGetHTML(item);
     //console.log(htmlResult);
     let websiteDivision = document.createElement("div");
