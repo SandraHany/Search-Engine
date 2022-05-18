@@ -15,7 +15,7 @@ const uri =
 const client = new MongoClient(uri);
 const database = client.db("SearchEngine");
 const indexer = database.collection("indexers");
-const IndexedURLs = database.collection("indexedurlsdescription");
+const IndexedURLs = database.collection("indexedlinks");
 
 
 
@@ -28,16 +28,15 @@ var host, port;
 
 var tempLinksList = [];
 var linksList = [];
-             
 
-var headerList = [];
+var found_documents = [];
+var ranked_URLs;
+
+
+var titleList = [];
 var descriptionList = [];
 
-var jsonResponse = {
-    "links": linksList,
-    "header": headerList,
-    "description": descriptionList
-};                
+               
 
 connectDB();
 
@@ -52,10 +51,6 @@ const server = app.listen(PORT, () => {
     console.log('listening at http://localhost:%s', port);
 });
 
-
-app.get('/', (req, res) => {
-  res.send('Hello World!');
-});
 
 var wordList;
 
@@ -80,11 +75,17 @@ app.get('/sites/:word', async (req, res) => {
                 }
                 if(i == queryArray.length - 1){
                     if(wordList.length > 0){
-                        //populateJsonResponse(linksList);
                         console.log(...wordList);
                         await callRanker(wordList, tempLinksList);
-                        linksList = tempLinksList.map((doc) => doc.URL);
-                        console.log(...linksList);
+                        linksList = ranked_URLs;
+                        var jsonResponse = {
+                            "links": linksList,
+                            "header": titleList,
+                            "description": descriptionList
+                        }; 
+                        //console.log(...linksList);
+                        //console.log(linksList);
+                        console.log(jsonResponse);
                         res.send(jsonResponse);
                     }
                     else{
@@ -123,17 +124,20 @@ async function getHtmlFromURL(url, title ,description) {
     // console.log(typeof(result.meta.description));
 }
 
+async function getHtmlData(){
+    var result = await parser('https://www.youtube.com/watch?v=eSzNNYk7nVU');
+    console.log(result.meta.title);
+    console.log(result.meta.description);
+}
+
 
 function populateJsonResponse(linksList) {
     var title;
-    for(let i = 0; i < 1; i++){
-        (async () => {
-            const title = await getHtmlFromURL(linksList[i])
-            console.log(title)
-          })();
-    }
+
+    getHtmlData();
+
     console.log("hi");
-    console.log(title);
+    console.log(...titleList);
     console.log("hi");
 }
 
@@ -154,92 +158,96 @@ function numberString(string){
 
 
 
-
-
-
-
-
-
-
-
-
-
-// const express = require("express");
-// const bodyParser = require("body-parser");
-// const url = require("url");
-// const app = express();
-// const port = 3002;
-// app.use(bodyParser.urlencoded({ extended: true }));
-
-
-
-
 // ------------------------------ Page ranker function ------------------------------
 async function ranker(words, found_documents) {
-  const totalDocuments = await IndexedURLs.countDocuments();
-
-  // loop over each word, calculate rank and add its document
-  for (var i = 0; i < words.length; i++) {
-    const name = words[i];
-    const query = { word: name };
-    const result = await indexer.findOne(query);
-
-    // if word found => save its document + calculate rank and score
-    if (result) {
-      const document_frequency = result.DF;
-      const docs = result.Details;
-
-      docs.forEach(async (document) => {
-        const url = document.URL;
-        const normalizedTF = document.NormalisedTF;
-        const index = found_documents.findIndex((doc) => doc.URL === url);
-        const tf_score =
-          0.5 * document.headingFrequency +
-          0.3 * document.titleFrequency +
-          0.1 * document.normalFrequency;
-
-        // document not found before
-        if (index === -1) {
-          const query_score = { URL: url };
-          const result_score = await IndexedURLs.findOne(query_score);
-
-          var popularity_score;
-          if (result_score.new_score > 0) {
-            popularity_score = result_score.new_score;
+    const totalDocuments = await IndexedURLs.countDocuments();
+  
+    // loop over each word, calculate rank and add its document
+    for (var i = 0; i < words.length; i++) {
+      const name = words[i];
+      const query = { word: name };
+      const result = await indexer.findOne(query);
+  
+      // if word found => save its document + calculate rank and score
+      if (result) {
+        console.log(`${name} -> found`);
+        const document_frequency = result.DF;
+        const docs = result.Details;
+  
+        docs.forEach(async (document) => {
+          const url = document.URL;
+          const normalizedTF = document.NormalisedTF;
+          const index = found_documents.findIndex((doc) => doc.URL === url);
+          const importance_score =
+            0.5 * document.headingFrequency +
+            0.3 * document.titleFrequency +
+            0.1 * document.normalFrequency;
+  
+          // document not found before
+          if (index === -1) {
+            var popularity_score = 1 / totalDocuments;
+  
+            found_documents.push({
+              URL: url,
+              IDF: totalDocuments / document_frequency,
+              Sum_TF: normalizedTF,
+              score: popularity_score,
+              importance_score: importance_score,
+              countWords: 1,
+            });
+            // console.log(found_documents);
           } else {
-            popularity_score = result_score.old_score;
+            found_documents[index].Sum_TF =
+              found_documents[index].Sum_TF + normalizedTF;
+  
+            found_documents[index].importance_score =
+              found_documents[index].importance_score + importance_score;
+  
+            found_documents[index].countWords =
+              found_documents[index].countWords + 1;
           }
-
-          found_documents.push({
-            URL: url,
-            IDF: totalDocuments / document_frequency,
-            Sum_TF: normalizedTF,
-            score: popularity_score,
-            TF_score: tf_score,
-          });
-        } else {
-          found_documents[index].Sum_TF =
-            found_documents[index].Sum_TF + normalizedTF;
-
-          found_documents[index].TF_score =
-            found_documents[index].TF_score + tf_score;
-        }
-      });
-    } else {
-      console.log(`${name} -> not found`);
+        });
+      } else {
+        console.log(`${name} -> not found`);
+      }
     }
+  
+    found_documents.forEach(async (doc) => {
+      const query_score = { URL: doc.URL };
+      const result_score = await IndexedURLs.findOne(query_score);
+  
+      var popularity_score;
+      if (result_score) {
+        if (result_score.new_score > 0) {
+          popularity_score = result_score.new_score;
+        } else {
+          popularity_score = result_score.old_score;
+        }
+      } else {
+        popularity_score = 1 / totalDocuments;
+      }
+  
+      doc.score = popularity_score;
+    });
+  
+    found_documents.sort((doc1, doc2) =>
+      doc1.IDF *
+        doc1.Sum_TF *
+        doc1.score *
+        doc1.importance_score *
+        doc1.countWords >
+      doc2.IDF *
+        doc2.Sum_TF *
+        doc2.score *
+        doc2.importance_score *
+        doc2.countWords
+        ? -1
+        : 1
+    );
+  
+    ranked_URLs = found_documents.map((doc) => doc.URL);
   }
 
-  found_documents.sort((doc1, doc2) =>
-    doc1.IDF * doc1.Sum_TF * doc1.score * doc1.TF_score >
-    doc2.IDF * doc2.Sum_TF * doc2.score * doc2.TF_score
-      ? -1
-      : 1
-  );
-
-
-  const result_docs = found_documents.map((doc) => doc.URL);
-}
 
 // ---------------------------- Phrase Searching Function ---------------------------
 async function PhraseSearching() {

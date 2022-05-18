@@ -1,16 +1,15 @@
-//import {searchByQuery} from "./main.js";
-//const searchByQuery = require('./main.js');
-//var afterLoad = require('after-load');
-
 var linksList = JSON.parse(sessionStorage.getItem("jSONRESPONSE")).links;
+// var linksList = ["https://stackoverflow.com/questions/7901760/how-can-i-get-the-title-of-a-webpage-given-the-url-an-external-url-using-jquer",
+//                  "https://windows.php.net/download#php-8.1"];
+
+console.log(...linksList);
+console.log("hello");
 
 let queryInput = document.getElementById("search-query-id");
 let searchQuery;
-//searchByQuery(queryInput,searchQuery);
 
 window.onload = function() {
     searchQuery = localStorage.getItem("SEARCHQUERY");
-  //  localStorage.setItem("SEARCHQUERY",searchQuery);
     console.log("search query is " + searchQuery);
     queryInput.value = searchQuery;
 };
@@ -54,20 +53,51 @@ function httpGetHTML(theUrl)
 }
 
 
+function getTitle(url){
+    var xhttp = new XMLHttpRequest();
+    xhttp.onreadystatechange = async function(){
+       if (this.readyState == 4 && this.status == 200) {
 
-function createWebsite(item){
+            var result =  this.responseText;
+            console.log(result);
+            //console.log("yay");
+            return result;
+        }
+      };
+ 
+    xhttp.open("GET", "http://textance.herokuapp.com/title/" + url, true);
+    xhttp.send();
+}
 
+
+
+async function fetchText(url) {
+    let response = await fetch("http://textance.herokuapp.com/title/" + url).then(response => response.text());
+    console.log(response);
+    return response;
+}
+
+
+
+async function createWebsite(item){
+    var title =  await fetchText(item);
+    console.log(title);
     //var htmlResult = httpGetHTML(item);
     //console.log(htmlResult);
     let websiteDivision = document.createElement("div");
-    let textNode = document.createTextNode(item);
-    let textNode1 = document.createTextNode("3aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa");
-    let link = document.createElement("a");
     websiteDivision.className = "website-division-class";
+
+    let textLink = document.createTextNode(item);
+    let textTitleLink = document.createTextNode(title);
+
+    let link = document.createElement("a");
+
     link.href = item;
-    link.appendChild(textNode);
+
+    link.appendChild(textLink);
+
     websiteDivision.appendChild(link);
-    websiteDivision.appendChild(textNode1);
+    websiteDivision.appendChild(textTitleLink);
     mainWebsiteDivision[0].appendChild(websiteDivision);
 }
 

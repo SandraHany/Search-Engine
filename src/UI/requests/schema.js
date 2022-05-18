@@ -12,7 +12,7 @@ const siteSchema = new schema({
 
 
 
-const Site = mongoose.model('indexer', siteSchema);
+const Site = mongoose.model('indexers', siteSchema);
 
 module.exports = Site;
 
