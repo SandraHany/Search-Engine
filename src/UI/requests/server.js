@@ -1,3 +1,4 @@
+const { MongoClient } = require("mongodb");
 const connectDB = require('./connection.js');
 const Site = require('./schema.js');
 const express = require('express');
@@ -8,22 +9,26 @@ const stemmer = natural.PorterStemmer;
 const app = express();
 app.use(express.json());
 
+const uri =
+  "mongodb+srv://Sandra:fmCs6CAZx0phSrjs@cluster0.real4.mongodb.net/SearchEngine?retryWrites=true&w=majority";
+
+const client = new MongoClient(uri);
+const database = client.db("SearchEngine");
+const indexer = database.collection("indexers");
+const IndexedURLs = database.collection("indexedurlsdescription");
+
+
+
+
+
 const PORT = 3000;
 const cors = require('cors');
 
 var host, port;
 
-var linksList = ["https://www.reddit.com/r/books/comments/4lugqb/books_that_changed_your_life_as_an_adult/"
-                ,"https://www.reddit.com"
-                ,"https://www.computerhope.com/jargon/u/url.htm"
-                ,"https://stackoverflow.com/questions/21293456/scroll-horizontally-starting-from-right-to-left-with-css-overflowscroll"
-                ,"https://www.reddit.com"
-                ,"https://developer.mozilla.org/en-US/docs/Learn/HTML/Introduction_to_HTML/Creating_hyperlinks"
-                ,"https://www.reddit.com/r/books/comments/4lugqb/books_that_changed_your_life_as_an_adult/"
-                ,"https://www.reddit.com"
-                ,"https://css-tricks.com/scroll-fix-content/"
-                ,"https://www.computerhope.com/jargon/u/url.htm"
-                ,"https://www.producthunt.com/posts/copy-all-urls"];
+var tempLinksList = [];
+var linksList = [];
+             
 
 var headerList = [];
 var descriptionList = [];
@@ -69,19 +74,22 @@ app.get('/sites/:word', async (req, res) => {
             }
             await Site.find({
                 word : currentWord
-            }).then((result) =>{
+            }).then(async (result) =>{
                 if(result[0] != null){
                     wordList.push(result[0].word);              
                 }
                 if(i == queryArray.length - 1){
                     if(wordList.length > 0){
                         //populateJsonResponse(linksList);
+                        console.log(...wordList);
+                        await callRanker(wordList, tempLinksList);
+                        linksList = tempLinksList.map((doc) => doc.URL);
+                        console.log(...linksList);
                         res.send(jsonResponse);
                     }
                     else{
                         res.send(false);
                     }
-                    console.log(...wordList);
                 }
 
             }).catch((err)=>{
@@ -91,8 +99,22 @@ app.get('/sites/:word', async (req, res) => {
 });
 
 
-async function getHtmlFromURL(url) {
+async function callRanker(words, found_documents) {
+    try {
+        await client.connect();
+        // await PhraseSearching();
+        await ranker(words, found_documents);
+      } catch (e) {
+        console.error(e);
+      }
+}
+
+
+
+async function getHtmlFromURL(url, title ,description) {
     var result = await parser(url);
+    title.push({title: result.meta.title});
+    description.push({description: result.meta.description});
     return (result.meta.title);
     // descriptionList.push(result.meta.description);
     // console.log(result.meta.title);
@@ -129,6 +151,121 @@ function numberString(string){
     }
     return false;
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+// const express = require("express");
+// const bodyParser = require("body-parser");
+// const url = require("url");
+// const app = express();
+// const port = 3002;
+// app.use(bodyParser.urlencoded({ extended: true }));
+
+
+
+
+// ------------------------------ Page ranker function ------------------------------
+async function ranker(words, found_documents) {
+  const totalDocuments = await IndexedURLs.countDocuments();
+
+  // loop over each word, calculate rank and add its document
+  for (var i = 0; i < words.length; i++) {
+    const name = words[i];
+    const query = { word: name };
+    const result = await indexer.findOne(query);
+
+    // if word found => save its document + calculate rank and score
+    if (result) {
+      const document_frequency = result.DF;
+      const docs = result.Details;
+
+      docs.forEach(async (document) => {
+        const url = document.URL;
+        const normalizedTF = document.NormalisedTF;
+        const index = found_documents.findIndex((doc) => doc.URL === url);
+        const tf_score =
+          0.5 * document.headingFrequency +
+          0.3 * document.titleFrequency +
+          0.1 * document.normalFrequency;
+
+        // document not found before
+        if (index === -1) {
+          const query_score = { URL: url };
+          const result_score = await IndexedURLs.findOne(query_score);
+
+          var popularity_score;
+          if (result_score.new_score > 0) {
+            popularity_score = result_score.new_score;
+          } else {
+            popularity_score = result_score.old_score;
+          }
+
+          found_documents.push({
+            URL: url,
+            IDF: totalDocuments / document_frequency,
+            Sum_TF: normalizedTF,
+            score: popularity_score,
+            TF_score: tf_score,
+          });
+        } else {
+          found_documents[index].Sum_TF =
+            found_documents[index].Sum_TF + normalizedTF;
+
+          found_documents[index].TF_score =
+            found_documents[index].TF_score + tf_score;
+        }
+      });
+    } else {
+      console.log(`${name} -> not found`);
+    }
+  }
+
+  found_documents.sort((doc1, doc2) =>
+    doc1.IDF * doc1.Sum_TF * doc1.score * doc1.TF_score >
+    doc2.IDF * doc2.Sum_TF * doc2.score * doc2.TF_score
+      ? -1
+      : 1
+  );
+
+
+  const result_docs = found_documents.map((doc) => doc.URL);
+}
+
+// ---------------------------- Phrase Searching Function ---------------------------
+async function PhraseSearching() {
+    const statement = '"Hello millania Java"';
+    const phrase_words = statement.slice(1, -1).split(" ");
+    console.log(phrase_words);
+    const documents = [];
+
+    await ranker(phrase_words, documents);
+    console.log(documents);
+
+    const result_docs = documents.map((doc) => doc.URL);
+    result_docs.forEach(async (doc) => {
+        const query = { word: name };
+        const result = await indexer.findOne(query);
+    });
+}
+
+
+
+
+
+
+
+
+
 
 
 
@@ -185,5 +322,3 @@ function numberString(string){
 //     }
 //     return newWord;
 // }
-
-
