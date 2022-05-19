@@ -32,8 +32,6 @@ var linksList = [];
 var found_documents = [];
 var ranked_URLs;
 
-
-var titleList = [];
 var descriptionList = [];
 
                
@@ -78,14 +76,19 @@ app.get('/sites/:word', async (req, res) => {
                     if(wordList.length > 0){
                         //console.log(...wordList);
                         tempLinksList = [];
-                        await callRanker(wordList, tempLinksList);
+                        if(query[0] != "\"" && query[query.length-1] != "\""){
+                            await callRanker(wordList, tempLinksList);
+                        }
+                        else{
+                            await PhraseSearching(query, wordList, tempLinksList);
+                        }
                         linksList = ranked_URLs;
-                        console.log(ranked_URLs);
+                        await getDescription(linksList);
                         jsonResponse = {
                             "links": linksList,
                             "description": descriptionList
                         }; 
-                        //console.log(jsonResponse);
+                        console.log(jsonResponse);
                         res.send(jsonResponse);
                     }
                     else{
@@ -100,11 +103,31 @@ app.get('/sites/:word', async (req, res) => {
 });
 
 
+
+
+async function getHtmlData(url){
+    var result = await parser(url).then(result => result.meta.description);
+    return result;
+}
+
+async function getDescription(linksList){
+    descriptionList = [];
+    for(let i = 0; i < linksList.length; i++){
+        var result = await getHtmlData(linksList[i]);
+        descriptionList.push(result);
+        //console.log(result);
+    }
+    console.log(...descriptionList);
+}
+
+
+
 async function callRanker(words, found_documents) {
     try {
         await client.connect();
         // await PhraseSearching();
         await ranker(words, found_documents);
+        console.log("ranker done");
       } catch (e) {
         console.error(e);
       }
@@ -216,23 +239,68 @@ async function ranker(words, found_documents) {
     ranked_URLs = found_documents.map((doc) => doc.URL);
   }
 
-
-// ---------------------------- Phrase Searching Function ---------------------------
-async function PhraseSearching() {
-    const statement = '"Hello millania Java"';
-    const phrase_words = statement.slice(1, -1).split(" ");
-    console.log(phrase_words);
-    const documents = [];
-
-    await ranker(phrase_words, documents);
-    console.log(documents);
-
-    const result_docs = documents.map((doc) => doc.URL);
-    result_docs.forEach(async (doc) => {
-        const query = { word: name };
-        const result = await indexer.findOne(query);
-    });
-}
+  async function PhraseSearching(statement, phrase_words, result) {
+    const phrase = statement.slice(1, -1);
+  
+    var found_documents = [];
+    await ranker(phrase_words, found_documents);
+  
+    const result_docs = found_documents.filter(
+      (doc) => doc.countWords >= phrase_words.length
+    );
+  
+    if (result_docs.length > 0) {
+      for (var i = 0; i < result_docs.length; i++) {
+        const url = result_docs[i].URL;
+  
+        if (url.includes("https")) {
+          getHttpsHtmlBody(url, result, phrase);
+        } else {
+          getHttpHtmlBody(url, result, phrase);
+        }
+      }
+    } else {
+      result = [];
+    }
+  }
+  
+  function getHttpsHtmlBody(url, result, phrase) {
+    var body = "";
+    https
+      .get(url, (res) => {
+        res.on("data", (d) => {
+          body += d;
+        });
+        res.on("end", () => {
+          if (body.includes(phrase)) {
+            result.push(url);
+            console.log(result);
+          }
+        });
+      })
+      .on("error", (e) => {
+        console.error(e);
+      });
+  }
+  
+  function getHttpHtmlBody(url, result, phrase) {
+    var body = "";
+    http
+      .get(url, (res) => {
+        res.on("data", (d) => {
+          body += d;
+        });
+        res.on("end", () => {
+          if (body.includes(phrase)) {
+            result.push(url);
+            console.log(result);
+          }
+        });
+      })
+      .on("error", (e) => {
+        console.error(e);
+      });
+  }
 
 
 
@@ -315,11 +383,6 @@ async function PhraseSearching() {
 //     // console.log(typeof(result.meta.description));
 // }
 
-// async function getHtmlData(){
-//     var result = await parser('https://www.youtube.com/watch?v=eSzNNYk7nVU');
-//     console.log(result.meta.title);
-//     console.log(result.meta.description);
-// }
 
 
 // function populateJsonResponse(linksList) {

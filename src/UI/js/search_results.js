@@ -1,4 +1,6 @@
 var linksList = JSON.parse(sessionStorage.getItem("jSONRESPONSE")).links;
+var descriptionList = JSON.parse(sessionStorage.getItem("jSONRESPONSE")).description;
+console.log(descriptionList);
 // var linksList = ["https://stackoverflow.com/questions/7901760/how-can-i-get-the-title-of-a-webpage-given-the-url-an-external-url-using-jquer",
 //                  "https://windows.php.net/download#php-8.1"];
 
@@ -21,7 +23,9 @@ queryInput.addEventListener("keypress", function(event) {
         // Get the value of the input field
         searchQuery = queryInput.value;
         event.preventDefault();
-        searchQuery = removeSpecialCharacters(searchQuery);
+        if(searchQuery[0] != "\"" && searchQuery[searchQuery.length-1] != "\""){
+            searchQuery = removeSpecialCharacters(searchQuery);
+        }
         console.log("search query is: " + searchQuery);
 
         var myRequest = new XMLHttpRequest();
@@ -109,7 +113,7 @@ async function fetchTitle(url) {
 
 
 
-async function createWebsite(item){
+async function createWebsite(item, description){
     var title =  await fetchTitle(item);
     //console.log(title);
     //var htmlResult = httpGetHTML(item);
@@ -118,6 +122,8 @@ async function createWebsite(item){
     websiteDivision.className = "website-division-class";
 
     let websiteSubDivision = document.createElement("div");
+    let websiteDescriptionDivision = document.createElement("div");
+    let descriptionNode = document.createTextNode(description);
     let textLink = document.createTextNode(item);
     let textTitleLink = document.createTextNode(title);
     websiteSubDivision.className = "title-link-class";
@@ -130,20 +136,23 @@ async function createWebsite(item){
     link.appendChild(textLink);
 
     websiteSubDivision.appendChild(textTitleLink);
+    websiteDescriptionDivision.appendChild(descriptionNode);
+    
     websiteDivision.appendChild(link);
     websiteDivision.appendChild(websiteSubDivision);
+    websiteDivision.appendChild(websiteDescriptionDivision);
     mainWebsiteDivision[0].appendChild(websiteDivision);
 }
 
 
-function displayWebsites(linksList, wrapper, maxWebsitesPerPage, currentPage) {
+function displayWebsites(linksList,descriptionList, wrapper, maxWebsitesPerPage, currentPage) {
     wrapper.innerHTML= "";
     currentPage--;
     let start = currentPage*maxWebsitesPerPage;
     let end = start + maxWebsitesPerPage;
     let listItems = linksList.slice(start, end);
     for (let i = 0; i < listItems.length; i++) {
-        createWebsite(listItems[i]);
+        createWebsite(listItems[i],descriptionList[i]);
     }
 }
 
@@ -201,7 +210,7 @@ function createButton(i , linksList, wrapper, maxWebsitesPerPage){
         else{
             currentPage = i;
         }
-        displayWebsites(linksList, mainWebsiteDivision[0], maxWebsitesPerPage, currentPage);
+        displayWebsites(linksList,descriptionList, mainWebsiteDivision[0], maxWebsitesPerPage, currentPage);
         pagenation(linksList, paginationDivision[0], maxWebsitesPerPage);
 
     });
@@ -210,7 +219,7 @@ function createButton(i , linksList, wrapper, maxWebsitesPerPage){
 
 
 
-displayWebsites(linksList, mainWebsiteDivision[0], maxWebsitesPerPage, currentPage);
+displayWebsites(linksList,descriptionList, mainWebsiteDivision[0], maxWebsitesPerPage, currentPage);
 pagenation(linksList, paginationDivision[0], maxWebsitesPerPage);
 
 
